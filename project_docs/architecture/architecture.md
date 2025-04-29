@@ -1,0 +1,305 @@
+# Thesis Grey Architecture Documentation
+
+## Architecture Overview
+Thesis Grey follows a Vertical Slice Architecture (VSA) with CQRS influences, organizing code around features rather than technical layers. This approach provides better cohesion and simpler testing while aligning with the requirements specified in the PRD.
+
+![Architecture Diagram](./diagrams/architecture-overview.png)
+
+<details>
+<summary>Diagram Source</summary>
+
+```mermaid
+graph TB
+    subgraph "Presentation Layer"
+        UI[UI Components]
+        Router[React Router]
+    end
+
+    subgraph "Application Layer"
+        Auth[Auth Service]
+        Search[Search Service]
+        Results[Results Service]
+        Review[Review Service]
+        Reporting[Reporting Service]
+    end
+
+    subgraph "Domain Layer"
+        Entities[Domain Entities]
+        Interfaces[Domain Interfaces]
+        Rules[Business Rules]
+    end
+
+    subgraph "Infrastructure Layer"
+        DB[PostgreSQL + Prisma]
+        ExternalAPI[Google Search API]
+        WaspActions[Wasp Actions]
+        WaspQueries[Wasp Queries]
+    end
+
+    UI --> Router
+    Router --> WaspActions
+    Router --> WaspQueries
+    
+    WaspActions --> Auth
+    WaspActions --> Search
+    WaspActions --> Results
+    WaspActions --> Review
+    WaspActions --> Reporting
+    
+    WaspQueries --> Auth
+    WaspQueries --> Search
+    WaspQueries --> Results
+    WaspQueries --> Review
+    WaspQueries --> Reporting
+    
+    Auth --> Entities
+    Search --> Entities
+    Results --> Entities
+    Review --> Entities
+    Reporting --> Entities
+    
+    Auth --> Rules
+    Search --> Rules
+    Results --> Rules
+    Review --> Rules
+    Reporting --> Rules
+    
+    Auth --> Interfaces
+    Search --> Interfaces
+    Results --> Interfaces
+    Review --> Interfaces
+    Reporting --> Interfaces
+    
+    Entities --> DB
+    Search --> ExternalAPI
+    
+    subgraph "Cross-cutting Concerns"
+        Error[Error Handling]
+        Logging[Logging]
+        Security[Security]
+        State[State Synchronization]
+        Config[Configuration]
+    end
+    
+    Error -.-> UI
+    Error -.-> Auth
+    Error -.-> Search
+    Error -.-> Results
+    Error -.-> Review
+    Error -.-> Reporting
+    
+    Logging -.-> Auth
+    Logging -.-> Search
+    Logging -.-> Results
+    Logging -.-> Review
+    Logging -.-> Reporting
+    
+    Security -.-> UI
+    Security -.-> Auth
+    Security -.-> WaspActions
+    Security -.-> WaspQueries
+    
+    State -.-> UI
+    State -.-> DB
+    
+    Config -.-> Auth
+    Config -.-> Search
+    Config -.-> Results
+    Config -.-> Review
+    Config -.-> Reporting
+    Config -.-> ExternalAPI
+```
+</details>
+
+## Core Layers
+
+### Domain Layer
+The Domain Layer contains the core business entities, interfaces, and business rules that define the application's domain model.
+
+#### Entities
+- **User**: Represents a user of the system with authentication credentials
+- **SearchSession**: Represents a search session containing multiple search queries
+- **SearchQuery**: Represents a specific search query within a session
+- **SearchExecution**: Represents the execution of a search query
+- **RawSearchResult**: Represents a raw search result from an external search engine
+- **ProcessedResult**: Represents a processed search result with normalized data
+- **ReviewTag**: Represents a tag that can be applied to search results
+- **ReviewTagAssignment**: Represents the assignment of a tag to a search result
+- **Note**: Represents a note attached to a search result
+- **DuplicateRelationship**: Represents a relationship between duplicate search results
+
+#### Interfaces
+- **SearchProvider**: Defines the contract for search providers
+  ```typescript
+  interface SearchProvider {
+    executeSearch(query: string, options: SearchOptions): Promise<RawSearchResult[]>;
+  }
+  ```
+- **ResultProcessor**: Defines the contract for processing search results
+  ```typescript
+  interface ResultProcessor {
+    processResult(rawResult: RawSearchResult): Promise<ProcessedResult>;
+    detectDuplicates(results: ProcessedResult[]): Promise<DuplicateRelationship[]>;
+  }
+  ```
+- **ReviewManager**: Defines the contract for managing the review process
+  ```typescript
+  interface ReviewManager {
+    createTag(name: string, color: string, sessionId: string): Promise<ReviewTag>;
+    assignTag(tagId: string, resultId: string): Promise<ReviewTagAssignment>;
+    createNote(content: string, resultId: string): Promise<Note>;
+  }
+  ```
+- **ReportGenerator**: Defines the contract for generating reports
+  ```typescript
+  interface ReportGenerator {
+    generatePrismaFlow(sessionId: string): Promise<PrismaFlowData>;
+    generateStatistics(sessionId: string): Promise<SessionStatistics>;
+    exportResults(sessionId: string, format: 'csv' | 'json'): Promise<string>;
+  }
+  ```
+
+#### Business Rules
+- Authentication requirements: Users must be authenticated to access the system
+- PRISMA workflow compliance: The review process must follow the PRISMA workflow
+- Search result processing rules: Results must be normalized and deduplicated
+
+### Application Layer
+The Application Layer implements the use cases of the application, orchestrating the flow of data to and from the domain entities.
+
+#### Use Cases
+- **User Authentication**: Registration, login, and profile management
+- **Search Strategy Building**: Creating and managing search sessions and queries
+- **Search Execution**: Executing search queries against external search engines
+- **Results Management**: Processing, normalizing, and deduplicating search results
+- **Review Process**: Tagging, annotating, and reviewing search results
+- **Reporting**: Generating reports and exporting data
+
+#### Services
+- **AuthService**: Handles user authentication and authorization
+- **SearchService**: Manages search sessions and queries
+- **ResultsService**: Processes and manages search results
+- **ReviewService**: Manages the review process
+- **ReportingService**: Generates reports and exports data
+
+#### State Management
+- Server-side state with client-side caching using React Query (provided by Wasp)
+- Optimistic UI updates for a responsive user experience
+
+### Infrastructure Layer
+The Infrastructure Layer provides technical capabilities to support the application.
+
+#### External Services
+- **Google Search API via Serper**: Provides search results from Google
+
+#### Persistence
+- **PostgreSQL**: Relational database for storing application data
+- **Prisma ORM**: Object-Relational Mapping for database access
+
+#### Communication
+- **RESTful API endpoints**: Wasp actions and queries for client-server communication
+
+### Presentation Layer
+The Presentation Layer handles the user interface and user interactions.
+
+#### UI Components
+- React components organized by feature (auth, searchStrategy, serpExecution, etc.)
+- Reusable UI components in the shared directory
+
+#### Routing
+- React Router (provided by Wasp) for client-side routing
+
+#### Styling
+- TailwindCSS for utility-first styling
+
+## Cross-cutting Concerns
+
+### Error Handling
+- **Centralized Error Handling**: Custom error types and consistent error responses
+- **Error Boundaries**: React error boundaries to prevent UI crashes
+- **Error Logging**: Structured error logging for debugging
+
+### Logging
+- **Structured Logging**: JSON-formatted logs with severity levels
+- **Contextual Information**: Request IDs, user IDs, and other contextual information
+- **Log Levels**: DEBUG, INFO, WARN, ERROR, and FATAL
+
+### Security
+- **JWT-based Authentication**: Secure authentication using JSON Web Tokens
+- **Input Validation**: Validation of all user inputs to prevent injection attacks
+- **CSRF Protection**: Protection against Cross-Site Request Forgery attacks
+
+### State Synchronization
+- **Optimistic UI Updates**: Update the UI immediately, then validate with the server
+- **Conflict Resolution**: Resolve conflicts between client and server state
+- **Loading States**: Clear indication of loading states for better user experience
+
+### Configuration
+- **Environment-based Configuration**: Different configurations for development, testing, and production
+- **Sensible Defaults**: Default configuration values for all settings
+- **Secret Management**: Secure management of sensitive configuration values
+
+## Integration Patterns
+
+### External Service Integration
+- **Adapter Pattern**: Adapters for external services to provide a consistent interface
+- **Resilience**: Retry mechanisms and circuit breakers for external service calls
+- **Caching**: Caching of external service responses to reduce API calls
+
+### Inter-service Communication
+- **Direct Method Calls**: Direct method calls within the monolith for efficiency
+- **Service Interfaces**: Well-defined interfaces between services for loose coupling
+
+### Event Handling
+- **Simple Pub/Sub**: A simple publish-subscribe mechanism for internal events
+- **Event Types**: Well-defined event types for type safety
+
+### State Persistence
+- **Repository Pattern**: Repositories for data access abstraction
+- **Unit of Work**: Transactions for maintaining data consistency
+
+## Component Interactions
+The application follows a unidirectional data flow:
+
+1. **User Interaction**: The user interacts with the UI components
+2. **Route Handling**: React Router routes the request to the appropriate page component
+3. **Action/Query Dispatch**: The page component dispatches a Wasp action or query
+4. **Service Orchestration**: The service orchestrates the use case, calling domain entities and interfaces
+5. **Data Access**: The repositories access the database via Prisma ORM
+6. **Response Flow**: The response flows back through the layers to the UI
+
+## Interface Contracts
+The application defines clear interface contracts between components:
+
+### SearchProvider Interface
+```typescript
+interface SearchProvider {
+  executeSearch(query: string, options: SearchOptions): Promise<RawSearchResult[]>;
+}
+```
+
+### ResultProcessor Interface
+```typescript
+interface ResultProcessor {
+  processResult(rawResult: RawSearchResult): Promise<ProcessedResult>;
+  detectDuplicates(results: ProcessedResult[]): Promise<DuplicateRelationship[]>;
+}
+```
+
+### ReviewManager Interface
+```typescript
+interface ReviewManager {
+  createTag(name: string, color: string, sessionId: string): Promise<ReviewTag>;
+  assignTag(tagId: string, resultId: string): Promise<ReviewTagAssignment>;
+  createNote(content: string, resultId: string): Promise<Note>;
+}
+```
+
+### ReportGenerator Interface
+```typescript
+interface ReportGenerator {
+  generatePrismaFlow(sessionId: string): Promise<PrismaFlowData>;
+  generateStatistics(sessionId: string): Promise<SessionStatistics>;
+  exportResults(sessionId: string, format: 'csv' | 'json'): Promise<string>;
+}
+```

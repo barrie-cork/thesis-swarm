@@ -1,0 +1,99 @@
+graph TB
+    subgraph "Presentation Layer"
+        UI[UI Components]
+        Router[React Router]
+    end
+
+    subgraph "Application Layer"
+        Auth[Auth Service]
+        Search[Search Service]
+        Results[Results Service]
+        Review[Review Service]
+        Reporting[Reporting Service]
+    end
+
+    subgraph "Domain Layer"
+        Entities[Domain Entities]
+        Interfaces[Domain Interfaces]
+        Rules[Business Rules]
+    end
+
+    subgraph "Infrastructure Layer"
+        DB[PostgreSQL + Prisma]
+        ExternalAPI[Google Search API]
+        WaspActions[Wasp Actions]
+        WaspQueries[Wasp Queries]
+    end
+
+    UI --> Router
+    Router --> WaspActions
+    Router --> WaspQueries
+    
+    WaspActions --> Auth
+    WaspActions --> Search
+    WaspActions --> Results
+    WaspActions --> Review
+    WaspActions --> Reporting
+    
+    WaspQueries --> Auth
+    WaspQueries --> Search
+    WaspQueries --> Results
+    WaspQueries --> Review
+    WaspQueries --> Reporting
+    
+    Auth --> Entities
+    Search --> Entities
+    Results --> Entities
+    Review --> Entities
+    Reporting --> Entities
+    
+    Auth --> Rules
+    Search --> Rules
+    Results --> Rules
+    Review --> Rules
+    Reporting --> Rules
+    
+    Auth --> Interfaces
+    Search --> Interfaces
+    Results --> Interfaces
+    Review --> Interfaces
+    Reporting --> Interfaces
+    
+    Entities --> DB
+    Search --> ExternalAPI
+    
+    subgraph "Cross-cutting Concerns"
+        Error[Error Handling]
+        Logging[Logging]
+        Security[Security]
+        State[State Synchronization]
+        Config[Configuration]
+    end
+    
+    Error -.-> UI
+    Error -.-> Auth
+    Error -.-> Search
+    Error -.-> Results
+    Error -.-> Review
+    Error -.-> Reporting
+    
+    Logging -.-> Auth
+    Logging -.-> Search
+    Logging -.-> Results
+    Logging -.-> Review
+    Logging -.-> Reporting
+    
+    Security -.-> UI
+    Security -.-> Auth
+    Security -.-> WaspActions
+    Security -.-> WaspQueries
+    
+    State -.-> UI
+    State -.-> DB
+    
+    Config -.-> Auth
+    Config -.-> Search
+    Config -.-> Results
+    Config -.-> Review
+    Config -.-> Reporting
+    Config -.-> ExternalAPI
