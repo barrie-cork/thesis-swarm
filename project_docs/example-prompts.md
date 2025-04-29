@@ -12,4 +12,4 @@
 
 ### Doc prompt
 
-> Great. Now that we've finished implementing that phase can you please document it in `ai/docs` according to the predefined conventions. Remeber you don't need to repeat info that already exists in project files, rather describe the implementation--and point to the file where the implementation can be found--so that it can be referenced by human
+> Great. Now that we've finished implementing that phase can you please document it in `ai/docs` according to the predefined conventions. Remember you don't need to repeat info that already exists in project files, rather describe the implementation--and point to the file where the implementation can be found--so that it can be referenced by human

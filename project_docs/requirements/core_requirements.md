@@ -16,7 +16,7 @@
 - REQ-FR-SSB-4: System must support file type filtering
 - REQ-FR-SSB-5: System must provide simple query generation
 - REQ-FR-SSB-6: System must offer query preview functionality
-- REQ-FR-SSB-7: System must support PICO framework
+
 
 ### SERP Execution
 - REQ-FR-SERP-1: System must integrate with Google Search API via Serper

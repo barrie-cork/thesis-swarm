@@ -3,6 +3,11 @@ description:
 globs: 
 alwaysApply: true
 ---
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # 1. Wasp Overview and Core Concepts
 
 This document covers the fundamental concepts of the Wasp framework, the basic project structure, and deployment information.
@@ -20,8 +25,8 @@ This document covers the fundamental concepts of the Wasp framework, the basic p
 ### Wasp Project Structure
 
 - A Wasp project consists of a [main.wasp](mdc:main.wasp) (or `main.wasp.ts`) file in the root directory that defines the app's configuration.
-- The [schema.prisma](mdc:schema.prisma) file in the root directory defines your database models.
-- Your custom code lives in the `src/` directory (e.g. `src/features/`), which contains client-side and server-side code.
+- The [schema.prisma](mdc:sdirectory defines your database models.
+- Your custom code lives in the `src/` directory (e.g. res/`), which contains client-side and server-side code.
 - Wasp generates additional code that connects everything together when you run your app.
 
 ### The main.wasp File
