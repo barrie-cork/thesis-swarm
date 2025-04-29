@@ -1,0 +1,27 @@
+app ThesisGrey {
+  title: "Thesis Grey",
+  wasp: { version: "^0.16.0" },
+  db: {
+    system: PostgreSQL,
+    prisma: {
+      clientPreviewFeatures: ["extendedWhereUnique"]
+    }
+  },
+  auth: {
+    userEntity: User,
+    methods: {
+      usernameAndPassword: {}
+    },
+    onAuthFailedRedirectTo: "/login"
+  },
+  dependencies: [
+    ("axios", "1.4.0"),
+    ("bcryptjs", "2.4.3")
+  ],
+  devDependencies: [
+    ("@types/bcryptjs", "2.4.2"),
+    ("autoprefixer", "10.4.14"),
+    ("postcss", "8.4.27"),
+    ("tailwindcss", "3.3.3")
+  ]
+}
