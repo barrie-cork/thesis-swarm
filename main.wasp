@@ -11,8 +11,16 @@ app ThesisGrey {
     userEntity: User,
     methods: {
       usernameAndPassword: {}
+      // Phase 2: Add OAuth methods
+      // google: {},
     },
     onAuthFailedRedirectTo: "/login"
+    // Phase 2: Add roles
+    // roles: {
+    //   researcher: {},
+    //   reviewer: {},
+    //   admin: {}
+    // }
   },
   dependencies: [
     ("axios", "1.4.0")
@@ -34,6 +42,13 @@ entity User {=psl
   updatedAt          DateTime          @updatedAt
   searchSessions     SearchSession[]
   reviewAssignments  ReviewAssignment[]
+  
+  // Phase 2 fields
+  role               String?
+  organizationId     String?
+  // Will add relations in Phase 2:
+  // organization      Organization?     @relation(fields: [organizationId], references: [id])
+  // teams             TeamMembership[]
 psl=}
 
 entity SearchSession {=psl
@@ -48,6 +63,15 @@ entity SearchSession {=psl
   searchExecutions  SearchExecution[]
   processedResults  ProcessedResult[]
   reviewTags        ReviewTag[]
+  
+  // Phase 2 fields
+  teamId            String?
+  isTemplate        Boolean?          @default(false)
+  parentTemplateId  String?
+  // Will add relations in Phase 2:
+  // team              Team?             @relation(fields: [teamId], references: [id])
+  // parentTemplate    SearchSession?    @relation("SessionTemplate", fields: [parentTemplateId], references: [id])
+  // derivedSessions   SearchSession[]   @relation("SessionTemplate")
 psl=}
 
 entity SearchQuery {=psl
@@ -60,6 +84,10 @@ entity SearchQuery {=psl
   searchSession     SearchSession     @relation(fields: [sessionId], references: [id])
   searchExecutions  SearchExecution[]
   rawSearchResults  RawSearchResult[]
+  
+  // Phase 2 fields
+  queryType         String?           // e.g., "boolean", "natural", "pico"
+  structuredData    Json?             // For storing structured query data (PICO elements, etc.)
 psl=}
 
 entity SearchExecution {=psl
@@ -73,6 +101,10 @@ entity SearchExecution {=psl
   sessionId         String
   searchQuery       SearchQuery       @relation(fields: [queryId], references: [id])
   searchSession     SearchSession     @relation(fields: [sessionId], references: [id])
+  
+  // Phase 2 fields
+  executedBy        String?           // User ID who executed the search
+  searchParams      Json?             // Additional search parameters
 psl=}
 
 entity RawSearchResult {=psl
@@ -86,6 +118,10 @@ entity RawSearchResult {=psl
   rawResponse       Json
   searchQuery       SearchQuery       @relation(fields: [queryId], references: [id])
   processedResult   ProcessedResult?
+  
+  // Phase 2 fields
+  fetchStatus       String?           // For tracking content fetching status
+  fullTextPath      String?           // Path to stored full text content
 psl=}
 
 entity ProcessedResult {=psl
@@ -102,6 +138,11 @@ entity ProcessedResult {=psl
   notes             Note[]
   duplicateOf       DuplicateRelationship[] @relation("primaryResult")
   duplicates        DuplicateRelationship[] @relation("duplicateResult")
+  
+  // Phase 2 fields
+  citationData      Json?             // Structured citation data
+  qualityScore      Float?            // Automated quality assessment
+  evidenceLevel     String?           // Evidence hierarchy classification
 psl=}
 
 entity DuplicateRelationship {=psl
@@ -112,6 +153,10 @@ entity DuplicateRelationship {=psl
   duplicateType     String
   primaryResult     ProcessedResult   @relation("primaryResult", fields: [primaryResultId], references: [id])
   duplicateResult   ProcessedResult   @relation("duplicateResult", fields: [duplicateResultId], references: [id])
+  
+  // Phase 2 fields
+  verifiedBy        String?           // User ID who verified the duplicate
+  verifiedAt        DateTime?         // When the duplicate was verified
 psl=}
 
 entity ReviewTag {=psl
@@ -121,6 +166,11 @@ entity ReviewTag {=psl
   sessionId         String
   searchSession     SearchSession     @relation(fields: [sessionId], references: [id])
   assignments       ReviewTagAssignment[]
+  
+  // Phase 2 fields
+  tagType           String?           // e.g., "inclusion", "exclusion", "topic"
+  description       String?           // Tag description
+  isSystemTag       Boolean?          @default(false)
 psl=}
 
 entity ReviewTagAssignment {=psl
@@ -129,12 +179,24 @@ entity ReviewTagAssignment {=psl
   resultId          String
   tag               ReviewTag         @relation(fields: [tagId], references: [id])
   result            ProcessedResult   @relation(fields: [resultId], references: [id])
+  
+  // Phase 2 fields
+  assignedBy        String?           // User ID who assigned the tag
+  assignedAt        DateTime?         @default(now())
+  confidence        Float?            // Reviewer confidence in this assignment
 psl=}
 
 entity ReviewAssignment {=psl
   id                String            @id @default(uuid())
   userId            String
   user              User              @relation(fields: [userId], references: [id])
+  
+  // Phase 2 fields
+  sessionId         String?           // Link to search session
+  assignedBy        String?           // User ID who created the assignment
+  startDate         DateTime?         // When review should start
+  dueDate           DateTime?         // When review should be completed
+  status            String?           // e.g., "pending", "in_progress", "completed"
 psl=}
 
 entity Note {=psl
@@ -144,7 +206,44 @@ entity Note {=psl
   updatedAt         DateTime          @updatedAt
   resultId          String
   result            ProcessedResult   @relation(fields: [resultId], references: [id])
+  
+  // Phase 2 fields
+  authorId          String?           // User who created the note
+  visibility        String?           @default("private") // "private", "team", "public"
 psl=}
+
+// Phase 2 entities (commented out for now)
+// entity Organization {=psl
+//   id                String            @id @default(uuid())
+//   name              String
+//   createdAt         DateTime          @default(now())
+//   updatedAt         DateTime          @updatedAt
+//   users             User[]
+//   teams             Team[]
+// psl=}
+//
+// entity Team {=psl
+//   id                String            @id @default(uuid())
+//   name              String
+//   organizationId    String
+//   organization      Organization      @relation(fields: [organizationId], references: [id])
+//   createdAt         DateTime          @default(now())
+//   updatedAt         DateTime          @updatedAt
+//   members           TeamMembership[]
+//   searchSessions    SearchSession[]
+// psl=}
+//
+// entity TeamMembership {=psl
+//   id                String            @id @default(uuid())
+//   userId            String
+//   teamId            String
+//   role              String            // "member", "admin"
+//   user              User              @relation(fields: [userId], references: [id])
+//   team              Team              @relation(fields: [teamId], references: [id])
+//   createdAt         DateTime          @default(now())
+//   updatedAt         DateTime          @updatedAt
+//   @@unique([userId, teamId])
+// psl=}
 
 // Routes
 route HomeRoute { path: "/", to: HomePage }
@@ -157,9 +256,14 @@ route ResultsManagerRoute { path: "/results/:sessionId", to: ResultsManagerPage 
 route ReviewRoute { path: "/review/:sessionId", to: ReviewPage }
 route ReportingRoute { path: "/reporting/:sessionId", to: ReportingPage }
 
+// Phase 2 routes (commented out for now)
+// route AdminRoute { path: "/admin", to: AdminPage }
+// route OrganizationsRoute { path: "/organizations", to: OrganizationsPage }
+// route TeamsRoute { path: "/teams", to: TeamsPage }
+
 // Pages
 page HomePage {
-  component: import { HomePage } from "@src/client/pages/HomePage"
+  component: import { HomePage } from "@src/client/home/pages/HomePage"
 }
 
 page LoginPage {
@@ -246,6 +350,16 @@ query getReportData {
   entities: [SearchSession, ProcessedResult, ReviewTagAssignment, ReviewTag]
 }
 
+query getUserProfile {
+  fn: import { getUserProfile } from "@src/server/auth/queries.js",
+  entities: [User]
+}
+
+query getUserSearchSessions {
+  fn: import { getUserSearchSessions } from "@src/server/auth/queries.js",
+  entities: [SearchSession]
+}
+
 // Actions
 action createSearchSession {
   fn: import { createSearchSession } from "@src/server/searchStrategy/actions.js",
@@ -289,4 +403,14 @@ action createNote {
 
 action exportResults {
   fn: import { exportResults } from "@src/server/reporting/actions.js"
+}
+
+action updateUserProfile {
+  fn: import { updateUserProfile } from "@src/server/auth/actions.js",
+  entities: [User]
+}
+
+action changePassword {
+  fn: import { changePassword } from "@src/server/auth/actions.js",
+  entities: [User]
 }

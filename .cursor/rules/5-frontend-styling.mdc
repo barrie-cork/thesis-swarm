@@ -1,54 +1,248 @@
 ---
 description: 
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
-# 5. Frontend (React) and Styling (TailwindCSS)
+# 5. Thesis Grey Frontend and Styling
 
-This document outlines conventions for building the user interface with React and styling it with Tailwind CSS.
+This document outlines the conventions for building the Thesis Grey user interface with React and styling it with Tailwind CSS.
 
-## React Conventions
+## React Components Structure
 
-- **Imports:**
-  - Use relative paths to import other React components within the `src/` directory.
-    - ✅ `import { MyButton } from '../components/MyButton';`
-    - ❌ `import { MyButton } from '@src/components/MyButton';`
+Thesis Grey organizes its React components by feature:
+
+```
+src/client/
+├── auth/                  # Authentication-related components
+│   ├── components/        # Reusable auth components
+│   └── pages/             # Auth pages (Login, Signup, Profile)
+├── searchStrategy/        # Search strategy builder components
+│   ├── components/        # Session management components 
+│   └── pages/             # Search strategy pages
+├── serpExecution/         # Search execution components
+│   ├── components/        # Execution UI components
+│   └── pages/             # Execution pages
+├── resultsManager/        # Results processing components
+│   ├── components/        # Results list and processing components
+│   └── pages/             # Results management pages
+├── reviewResults/         # Review interface components
+│   ├── components/        # Tagging and review components
+│   └── pages/             # Review pages
+├── reporting/             # Reporting components
+│   ├── components/        # PRISMA flow and statistics components
+│   └── pages/             # Reporting pages
+├── components/            # Shared application components
+│   ├── layout/            # Layout components (Navbar, Sidebar)
+│   └── ui/                # Reusable UI components
+└── pages/                 # Top-level pages (Home)
+```
+
+## Common Component Patterns
+
+### Page Components
+
+Page components in Thesis Grey follow this pattern:
+
+```tsx
+// src/client/featureName/pages/FeaturePage.tsx
+import { useQuery } from 'wasp/client/operations';
+import { getSomeData } from 'wasp/client/operations';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { FeatureComponent } from '../components/FeatureComponent';
+
+export function FeaturePage() {
+  const { data, isLoading, error } = useQuery(getSomeData);
   
-- **State Management:**
-  - Use standard React hooks (`useState`, `useEffect`, `useReducer`) for component-level state.
-  - Use Wasp Queries (`useQuery`) for fetching and managing server state on the client.
-  - Consider React Context (`createContext`, `useContext`) for global UI state that doesn't need server persistence (e.g., theme, modal visibility) but avoid overusing it for state that belongs in specific components or on the server.
-- **Error Handling (Client-side):**
-  - Use `try/catch` blocks with `async/await` when calling Wasp Actions.
-  - The `useQuery` hook provides `error` objects for handling query errors.
-  - Consider implementing a global React Error Boundary component at a high level in your component tree (e.g., within the root component) to catch rendering errors gracefully.
-    - See [React Docs on Error Boundaries](mdc:https:/react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary).
+  if (isLoading) return <div className="p-4">Loading...</div>;
+  if (error) return <div className="p-4 text-red-600">Error: {error.message}</div>;
+  
+  return (
+    <div className="container mx-auto p-4">
+      <PageHeader title="Feature Title" />
+      <FeatureComponent data={data} />
+    </div>
+  );
+}
+```
 
-## Shadcn/ui Components (`src/components`)
+### Reusable Components
 
-- This project utilizes components based on the [Shadcn/ui](mdc:https:/ui.shadcn.com) library, primarily located within the `src/components` directory and its subdirectories (e.g., `src/components/ui`).
-- Many of these components follow patterns and styles inspired by common admin dashboard layouts built with Shadcn/ui.
-- **Usage:** When building UI features, prefer using or adapting existing components from `src/components` to maintain visual consistency.
-- **Customization:** Components are typically self-contained or rely on utilities (e.g., `cn` for merging Tailwind classes). Refer to the Shadcn/ui documentation for underlying principles if deeper customization is needed.
-- **Adding New Components:** If adding new components inspired by Shadcn/ui, follow the existing structure and conventions within `src/components`.
+Reusable components are broken down by responsibility and stored in feature-specific `components` directories:
 
-## TailwindCSS Conventions
+```tsx
+// src/client/featureName/components/ComponentName.tsx
+import { useState } from 'react';
 
-- **Primary Styling Method:** Use Tailwind CSS utility classes directly in your JSX for styling.
-- **Avoid Inline Styles:** Generally avoid using the `style` prop unless absolutely necessary for dynamic styles that cannot be achieved with Tailwind classes.
-- **Reusability:** For complex or frequently reused style combinations, consider:
-  - Creating reusable React components that encapsulate the structure and styling.
-  - If necessary, using `@apply` within a global CSS file (`src/client/index.css` or similar) to create custom reusable classes, but prefer component composition first.
-    ```css
-    /* Example in index.css */
-    @tailwind base;
-    @tailwind components;
-    @tailwind utilities;
+type ComponentProps = {
+  data: SomeType[];
+  onAction: (id: string) => void;
+};
 
-    .btn-primary {
-      @apply px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300;
+export function ComponentName({ data, onAction }: ComponentProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  
+  return (
+    <div className="rounded-lg bg-white shadow p-4">
+      {/* Component content */}
+    </div>
+  );
+}
+```
+
+## TailwindCSS Usage in Thesis Grey
+
+Thesis Grey uses Tailwind CSS for all styling with these conventions:
+
+### Common UI Patterns
+
+- **Containers**: `container mx-auto p-4`
+- **Cards**: `rounded-lg bg-white shadow p-4`
+- **Buttons**: 
+  - Primary: `bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700`
+  - Secondary: `bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300`
+  - Danger: `bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700`
+- **Forms**:
+  - Input: `w-full rounded-md border-gray-300 shadow-sm px-3 py-2`
+  - Label: `block text-sm font-medium text-gray-700 mb-1`
+  - Form Group: `mb-4`
+
+### Feature-Specific UI Components
+
+#### Search Strategy Builder
+
+The search strategy builder uses a card-based UI for sessions and queries:
+
+```tsx
+// Session list component example
+export function SessionList({ sessions }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {sessions.map(session => (
+        <div key={session.id} className="rounded-lg bg-white shadow p-4 hover:shadow-md transition">
+          <h3 className="text-lg font-medium">{session.name}</h3>
+          <p className="text-gray-600 mt-1">{session.description || 'No description'}</p>
+          <div className="mt-4 flex justify-between">
+            <span className="text-sm text-gray-500">
+              {session.searchQueries.length} queries
+            </span>
+            <Link 
+              to={`/search-execution/${session.id}`}
+              className="text-indigo-600 hover:text-indigo-800"
+            >
+              View Session
+            </Link>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+#### Results Review Interface
+
+The review interface uses a split-panel design with tagging functionality:
+
+```tsx
+// Example tag component
+export function TagList({ tags, onTagSelect, selectedTagId }) {
+  return (
+    <div className="flex flex-wrap gap-2 mb-4">
+      {tags.map(tag => (
+        <button
+          key={tag.id}
+          onClick={() => onTagSelect(tag.id)}
+          className={`px-3 py-1 rounded-full text-sm ${
+            selectedTagId === tag.id
+              ? 'bg-opacity-100'
+              : 'bg-opacity-50 hover:bg-opacity-70'
+          }`}
+          style={{ backgroundColor: tag.color, color: getContrastColor(tag.color) }}
+        >
+          {tag.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+## Responsive Design
+
+Thesis Grey implements responsive design using Tailwind's breakpoint system:
+
+- Mobile-first approach with progressive enhancement
+- Key breakpoints:
+  - `sm`: 640px (small devices)
+  - `md`: 768px (medium devices)
+  - `lg`: 1024px (large devices)
+  - `xl`: 1280px (extra large devices)
+
+Example responsive layout:
+
+```tsx
+<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+  {/* Content that changes from 1 to 2 to 3 columns based on screen size */}
+</div>
+```
+
+## Form Handling
+
+Forms in Thesis Grey follow this pattern:
+
+```tsx
+// Form component example
+export function CreateSessionForm({ onSubmit }) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await onSubmit({ name, description });
+      setName('');
+      setDescription('');
+    } catch (error) {
+      console.error('Error creating session:', error);
     }
-    ```
-- **Responsive Design:** Use Tailwind's responsive prefixes (`sm:`, `md:`, `lg:`, `xl:`, `2xl:`) to apply styles conditionally based on screen size.
-  - ✅ `<div class="w-full md:w-1/2 lg:w-1/3">...</div>`
-- **Configuration:** If you need to customize Tailwind (e.g., add custom colors, fonts, spacing), modify the `@tailwind.config.js` file in the project root. 
+  };
+  
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          Session Name
+        </label>
+        <input
+          id="name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          className="w-full rounded-md border-gray-300 shadow-sm px-3 py-2"
+        />
+      </div>
+      
+      <div>
+        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+          Description (optional)
+        </label>
+        <textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          className="w-full rounded-md border-gray-300 shadow-sm px-3 py-2"
+        />
+      </div>
+      
+      <button
+        type="submit"
+        className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+      >
+        Create Session
+      </button>
+    </form>
+  );
+}
+```

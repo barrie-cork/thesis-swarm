@@ -1,115 +1,179 @@
-import { HttpError } from "wasp/server";
+import HttpError from 'wasp/core/HttpError.js';
 
 /**
  * Create a new search session
  */
-export const createSearchSession = async ({ name, description }, context) => {
+export const createSearchSession = async (args, context) => {
   if (!context.user) {
-    throw new HttpError(401, "Unauthorized");
+    throw new HttpError(401, 'Not authorized');
   }
 
-  if (!name || !name.trim()) {
-    throw new HttpError(400, "Session name is required");
+  const { name, description, teamId } = args;
+
+  // Validate inputs
+  if (!name || name.trim() === '') {
+    throw new HttpError(400, 'Name is required');
+  }
+
+  // Data object prepared with Phase 2 in mind
+  const data = {
+    name,
+    description,
+    userId: context.user.id
+  };
+
+  // Phase 2 extension point - this will be a no-op in Phase 1
+  if (teamId) {
+    // In Phase 2, we would validate teamId and team membership here
+    data.teamId = teamId;
   }
 
   try {
     const newSession = await context.entities.SearchSession.create({
-      data: {
-        name,
-        description,
-        userId: context.user.id
+      data,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
     return newSession;
   } catch (error) {
-    console.error("Failed to create search session:", error);
-    throw new HttpError(500, "Failed to create search session");
+    console.error('Error creating search session:', error);
+    throw new HttpError(500, 'Failed to create search session');
   }
 };
 
 /**
  * Create a new search query
  */
-export const createSearchQuery = async ({ sessionId, query, description }, context) => {
+export const createSearchQuery = async (args, context) => {
   if (!context.user) {
-    throw new HttpError(401, "Unauthorized");
+    throw new HttpError(401, 'Not authorized');
+  }
+
+  const { sessionId, query, description, queryType, structuredData } = args;
+
+  // Validate inputs
+  if (!sessionId) {
+    throw new HttpError(400, 'Session ID is required');
+  }
+  if (!query || query.trim() === '') {
+    throw new HttpError(400, 'Query string is required');
+  }
+
+  // Check if session exists and user has access to it
+  const session = await context.entities.SearchSession.findFirst({
+    where: {
+      id: sessionId,
+      // This is where we'll add team access in Phase 2
+      userId: context.user.id
+    }
+  });
+
+  if (!session) {
+    throw new HttpError(404, 'Search session not found or access denied');
+  }
+
+  // Data object prepared with Phase 2 in mind
+  const data = {
+    query,
+    description,
+    sessionId
+  };
+
+  // Phase 2 extension points
+  if (queryType) {
+    data.queryType = queryType;
+  }
+  if (structuredData) {
+    data.structuredData = structuredData;
   }
 
   try {
-    // Check if the session exists and belongs to the user
-    const session = await context.entities.SearchSession.findUnique({
-      where: { id: sessionId }
-    });
-
-    if (!session) {
-      throw new HttpError(404, "Search session not found");
-    }
-
-    if (session.userId !== context.user.id) {
-      throw new HttpError(403, "You don't have access to this search session");
-    }
-
     const newQuery = await context.entities.SearchQuery.create({
-      data: {
-        query,
-        description,
-        sessionId
+      data,
+      select: {
+        id: true,
+        query: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
+        sessionId: true
       }
     });
 
     return newQuery;
   } catch (error) {
-    // Re-throw HttpError instances
-    if (error instanceof HttpError) {
-      throw error;
-    }
-    
-    console.error("Failed to create search query:", error);
-    throw new HttpError(500, "Failed to create search query");
+    console.error('Error creating search query:', error);
+    throw new HttpError(500, 'Failed to create search query');
   }
 };
 
 /**
  * Update an existing search query
  */
-export const updateSearchQuery = async ({ id, query, description }, context) => {
+export const updateSearchQuery = async (args, context) => {
   if (!context.user) {
-    throw new HttpError(401, "Unauthorized");
+    throw new HttpError(401, 'Not authorized');
   }
 
+  const { id, query, description, queryType, structuredData } = args;
+
+  // Validate inputs
+  if (!id) {
+    throw new HttpError(400, 'Query ID is required');
+  }
+
+  // Verify ownership of the query
+  const existingQuery = await context.entities.SearchQuery.findFirst({
+    where: {
+      id,
+      searchSession: {
+        // This is where we'll add team access in Phase 2
+        userId: context.user.id
+      }
+    },
+    include: {
+      searchSession: true
+    }
+  });
+
+  if (!existingQuery) {
+    throw new HttpError(404, 'Search query not found or access denied');
+  }
+
+  // Only update provided fields
+  const data = {};
+  if (query !== undefined) data.query = query;
+  if (description !== undefined) data.description = description;
+  
+  // Phase 2 extension points
+  if (queryType !== undefined) data.queryType = queryType;
+  if (structuredData !== undefined) data.structuredData = structuredData;
+
   try {
-    // Check if the query exists and belongs to the user's session
-    const existingQuery = await context.entities.SearchQuery.findUnique({
-      where: { id },
-      include: { searchSession: true }
-    });
-
-    if (!existingQuery) {
-      throw new HttpError(404, "Search query not found");
-    }
-
-    if (existingQuery.searchSession.userId !== context.user.id) {
-      throw new HttpError(403, "You don't have access to this search query");
-    }
-
     const updatedQuery = await context.entities.SearchQuery.update({
       where: { id },
-      data: {
-        query,
-        description,
-        updatedAt: new Date()
+      data,
+      select: {
+        id: true,
+        query: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
+        sessionId: true,
+        queryType: true,
+        structuredData: true
       }
     });
 
     return updatedQuery;
   } catch (error) {
-    // Re-throw HttpError instances
-    if (error instanceof HttpError) {
-      throw error;
-    }
-    
-    console.error("Failed to update search query:", error);
-    throw new HttpError(500, "Failed to update search query");
+    console.error('Error updating search query:', error);
+    throw new HttpError(500, 'Failed to update search query');
   }
 }; 

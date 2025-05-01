@@ -1,83 +1,155 @@
-# Technology Stack Documentation
+# Thesis Grey: Technology Stack
 
-## Core Technology
-- **Wasp** - 0.16.0
+## Overview
 
-## Required Dependencies
+Thesis Grey is implemented using the Wasp framework, a full-stack web application development platform that integrates React, Node.js, and Prisma. This document details the technology stack and architectural decisions made to optimize development efficiency and maintainability.
+
+## Core Technologies
+
+### Full-Stack Framework
+- **Wasp**: A declarative DSL that generates and integrates code for web applications
+  - Version: ^0.16.0
+  - Provides integrated authentication, routing, database access, and API layer
 
 ### Frontend
-- **React** - 18.2.0
-  - **Purpose:** UI library for building the user interface
-  - **Rationale:** Integrated with Wasp framework, provides component-based architecture
-- **TypeScript** - 5.1.6
-  - **Purpose:** Type-safe JavaScript for frontend and backend
-  - **Rationale:** Enhances code quality and developer experience, required in technical specs
-- **TailwindCSS** - 3.3.3
-  - **Purpose:** Utility-first CSS framework for styling
-  - **Rationale:** Enables rapid UI development with consistent design
-- **React Router** - 6.14.2
-  - **Purpose:** Client-side routing
-  - **Rationale:** Provided by Wasp, handles navigation between pages
+- **React**: UI component library
+- **TypeScript**: Type-safe JavaScript
+- **TailwindCSS**: Utility-first CSS framework
+- **React Router**: Client-side routing (provided by Wasp)
 
 ### Backend
-- **Node.js** - 18.16.1
-  - **Purpose:** JavaScript runtime for backend
-  - **Rationale:** LTS version compatible with Wasp, stable and well-supported
-- **Express** - 4.18.2
-  - **Purpose:** Web server framework
-  - **Rationale:** Provided by Wasp, handles HTTP requests and routing
+- **Node.js**: JavaScript runtime
+- **Express**: Web server framework (provided by Wasp)
+- **Prisma**: ORM for database operations
+- **JWT**: Authentication tokens (managed by Wasp)
 
 ### Database
-- **PostgreSQL** - 15.3
-  - **Purpose:** Relational database system
-  - **Rationale:** Required in technical specs, provides robust data storage
-- **Prisma** - 5.1.1
-  - **Purpose:** ORM for database operations
-  - **Rationale:** Required in technical specs, provides type-safe database access
+- **PostgreSQL**: Relational database
+
+### External APIs
+- **Google Search API via Serper**: For search execution
+
+## Architecture
+
+Thesis Grey follows a Vertical Slice Architecture (VSA) while leveraging Wasp's built-in capabilities for common full-stack concerns:
+
+### Core Layers
+
+#### Domain Layer
+- Business entities defined through Prisma schema
+- Domain logic in feature-specific directories
+
+#### Application Layer
+- Use cases implemented via Wasp actions and queries
+- Authentication using Wasp's built-in auth system
+- Error handling using Wasp's HttpError
+
+#### Infrastructure Layer
+Minimized through the use of Wasp's capabilities:
+- **Authentication**: Wasp's built-in auth system
+- **Database Access**: Wasp's Prisma integration
+- **API Layer**: Implemented via Wasp actions and queries
+- **External Services**: Custom adapters for search APIs
+
+#### Presentation Layer
+- React components with Wasp's routing system
+- Auto-generated React Query hooks for data fetching
+
+### Cross-cutting Concerns
+
+#### Error Handling
+- Wasp's `HttpError` for operation failures
+- React error handling in UI components
+
+#### Logging
+- Console-based logging for development
+- Structured logging for production
+
+#### Security
+- Authentication via Wasp's built-in auth system
+- Authorization enforced in operations and routes
+
+#### State Management
+- **Client State**: React Query (provided by Wasp)
+- **Server State**: Prisma transactions
+
+## Project Structure
+
+```
+thesis-grey/
+├── main.wasp                 # Wasp configuration (routes, entities, auth, queries, actions)
+├── schema.prisma             # Database schema
+├── src/
+│   ├── client/               # Client-side code
+│   │   ├── auth/             # Authentication UI components
+│   │   ├── searchStrategy/   # Search strategy builder components
+│   │   ├── serpExecution/    # Search execution components
+│   │   ├── resultsManager/   # Results processing components
+│   │   ├── reviewResults/    # Review interface components
+│   │   ├── reporting/        # Reporting components
+│   │   └── pages/            # Main pages
+│   ├── server/               # Server-side code
+│   │   ├── auth/             # Authentication logic
+│   │   ├── searchStrategy/   # Search strategy logic
+│   │   ├── serpExecution/    # Search execution logic
+│   │   ├── resultsManager/   # Results processing logic
+│   │   ├── reviewResults/    # Review logic
+│   │   ├── reporting/        # Reporting logic
+│   │   └── shared/           # Shared server utilities
+│   └── shared/               # Code shared between client and server
+├── public/                   # Public assets
+└── project_docs/             # Project documentation
+```
+
+## Feature-Specific Implementation
 
 ### Authentication
-- **JWT** - 9.0.1
-  - **Purpose:** Authentication tokens
-  - **Rationale:** Required in technical specs, secure authentication mechanism
-- **bcryptjs** - 2.4.3
-  - **Purpose:** Password hashing
-  - **Rationale:** Secure password storage for user authentication
+- Uses Wasp's built-in user authentication system
+- Username/password authentication
+- JWT-based session management
+- Protected routes using Wasp's `authRequired` property
 
-### API Integration
-- **Axios** - 1.4.0
-  - **Purpose:** HTTP client for API requests
-  - **Rationale:** Modern, promise-based HTTP client for making requests to external APIs
-- **Serper API Client** - Custom implementation
-  - **Purpose:** Integration with Google Search API via Serper
-  - **Rationale:** Required for search execution functionality
+### Search Strategy Builder
+- Manages search sessions and queries
+- Implements PICO framework concept grouping
+- User-specific data with automatic authorization
 
-### Development & Deployment
-- **Docker** - 24.0.5
-  - **Purpose:** Containerization for production
-  - **Rationale:** Required in technical specs, ensures consistent deployment
-- **ESLint** - 8.46.0
-  - **Purpose:** Code linting
-  - **Rationale:** Ensures code quality and consistency
-- **Prettier** - 3.0.1
-  - **Purpose:** Code formatting
-  - **Rationale:** Ensures consistent code style
+### SERP Execution
+- Integration with Google Search API via Serper
+- Asynchronous search execution
+- Progress tracking and error handling
 
-## Compatibility Matrix
-| Dependency | Compatible With | Notes |
-|------------|-----------------|-------|
-| React 18.2.0 | Wasp 0.16.0, TypeScript 5.1.6 | Core UI library |
-| TypeScript 5.1.6 | Wasp 0.16.0, React 18.2.0 | Type system |
-| Node.js 18.16.1 | Wasp 0.16.0, Express 4.18.2 | Runtime environment |
-| PostgreSQL 15.3 | Prisma 5.1.1 | Database system |
-| Prisma 5.1.1 | Wasp 0.16.0, PostgreSQL 15.3 | ORM |
-| TailwindCSS 3.3.3 | React 18.2.0 | Styling |
-| JWT 9.0.1 | Wasp 0.16.0 | Authentication |
-| Docker 24.0.5 | All components | Containerization |
+### Results Manager
+- Automated result processing
+- URL normalization for duplicate detection
+- Metadata extraction (domain, file type)
 
-## Version Locking Rationale
-- All versions are locked to ensure reproducibility and stability.
-- Wasp 0.16.0 is explicitly required in the PRD.
-- React 18.2.0 is the latest stable version compatible with Wasp 0.16.0.
-- Node.js 18.16.1 is an LTS version compatible with all other dependencies.
-- PostgreSQL 15.3 is the latest stable version with long-term support.
-- All other dependencies are selected for compatibility with these core components.
+### Review Interface
+- Custom tagging system with color coding
+- Note-taking functionality
+- Results filtering by tags
+- PRISMA-compliant workflow
+
+### Reporting & Export
+- PRISMA flow diagram visualization
+- Statistics and metrics
+- CSV and JSON export options
+
+## Wasp-Specific Advantages
+
+The Thesis Grey implementation leverages several key advantages of the Wasp framework:
+
+1. **Reduced Boilerplate**: Wasp generates common patterns for auth, CRUD operations, and API endpoints
+2. **Type Safety**: Auto-generated TypeScript types from database schema
+3. **Integrated Auth**: Built-in authentication system that handles sessions, tokens, and user management
+4. **Unified Codebase**: Single repository with clear separation of concerns
+5. **Operations Pattern**: Standardized approach to client-server communication
+
+## Extension Points
+
+The architecture provides clear extension points for Phase 2 enhancements:
+
+1. **Advanced Search APIs**: Additional search engine integrations
+2. **Collaborative Review**: Multi-user annotation and review
+3. **Machine Learning**: Integration with NLP services for automated processing
+4. **Advanced Reporting**: Extended analysis and visualization options

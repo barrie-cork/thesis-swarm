@@ -1,139 +1,211 @@
 ---
-description: 
-globs: 
-alwaysApply: true
+description:
+globs:
+alwaysApply: false
 ---
-# 4. Authentication
+# 4. Thesis Grey Authentication
 
-This document details how authentication is configured and used within the Wasp application.
+This document details how authentication is implemented and used within the Thesis Grey application.
 
-## Wasp Auth Setup (`@main.wasp`)
+## Authentication Setup in Thesis Grey
 
-- Wasp provides built-in authentication with minimal configuration in [main.wasp](mdc:main.wasp).
-- Auth can be configured with username/password, social providers (Google, GitHub, etc.), or verified email and password.
-- Wasp generates all necessary auth routes, middleware, and UI components based on the configuration.
-- Example auth configuration in [main.wasp](mdc:main.wasp):
-  ```wasp
-  app myApp {
-    // ... other config
-    auth: {
-      // Links Wasp auth to your User model in @schema.prisma
-      userEntity: User,
-      methods: {
-        // Enable username/password login
-        usernameAndPassword: {},
-        // Enable Google OAuth login
-        // Requires setting GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env vars
-        google: {},
-        // Enable email/password login with verification
-        email: {
-          // Set up an email sender (Dummy prints to console)
-          // See https://wasp-lang.com/docs/auth/email-auth#email-sending
-          fromField: {
-            name: "Budgeting Vibe",
-            email: "noreply@budgetingvibe.com"
-          },
-          emailVerification: {
-            clientRoute: EmailVerificationRoute
-          },
-          passwordReset: {
-            clientRoute: PasswordResetRoute
-          }
-        }
-      },
-      // Route to redirect to if auth fails
-      onAuthFailedRedirectTo: "/login",
-      // Optional: Route after successful signup/login
-      // onAuthSucceededRedirectTo: "/dashboard"
-    }
-    emailSender: {
-      provider: Dummy // Use Dummy for local dev (prints emails to console)
-      // provider: SMTP // For production, configure SMTP
-    }
+Thesis Grey uses Wasp's built-in username/password authentication system:
+
+```wasp
+// In main.wasp
+app ThesisGrey {
+  // ... other config
+  auth: {
+    userEntity: User,
+    methods: {
+      usernameAndPassword: {}
+    },
+    onAuthFailedRedirectTo: "/login"
   }
+}
+```
 
-  // Define the routes needed by email auth methods
-  route EmailVerificationRoute { path: "/auth/verify-email/:token", to: EmailVerificationPage }
-  page EmailVerificationPage { component: import { EmailVerification } from "@src/features/auth/EmailVerificationPage.tsx" }
+The Thesis Grey authentication system consists of:
 
-  route PasswordResetRoute { path: "/auth/reset-password/:token", to: PasswordResetPage }
-  page PasswordResetPage { component: import { PasswordReset } from "@src/features/auth/PasswordResetPage.tsx" }
-  ```
+- The `User` entity that stores user information
+- Login and signup pages with Wasp's authentication forms
+- Protected routes through the `authRequired: true` property
+- Authorization checks in server operations
 
-- **Dummy Email Provider Note:** When `emailSender: { provider: Dummy }` is configured in [main.wasp](mdc:main.wasp), Wasp does not send actual emails. Instead, the content of verification/password reset emails, including the clickable link, will be printed directly to the server console where `wasp start` is running.
+## Authentication Pages
 
-## Wasp Auth Rules
+### Login Page
 
-- **User Model ( [schema.prisma](mdc:schema.prisma) ):**
-  - Wasp Auth methods handle essential identity fields (like `email`, `password hash`, `provider IDs`, `isVerified`) internally. These are stored in separate Prisma models managed by Wasp (`AuthProvider`, `AuthProviderData`).
-  - Your Prisma `User` model (specified in [main.wasp](mdc:main.wasp) as `auth.userEntity`) typically **only needs the `id` field** for Wasp to link the auth identity.
-    ```prisma
-    // Minimal User model in @schema.prisma
-    model User {
-      id Int @id @default(autoincrement())
-      // Add other *non-auth* related fields as needed
-      // e.g., profile info, preferences, relations to other models
-      // profileImageUrl String?
-      // timeZone        String? @default("UTC")
-    }
-    ```
-  - **Avoid adding** `email`, `emailVerified`, `password`, `username`, or provider-specific ID fields directly to *your* `User` model in [schema.prisma](mdc:schema.prisma) unless you have very specific customization needs that require overriding Wasp's default behavior and managing these fields manually.
-  - If you need frequent access to an identity field like `email` or `username` for *any* user (not just the logged-in one), see the **Recommendation** in the "Wasp Auth User Fields" section below.
+```tsx
+// src/client/auth/pages/LoginPage.tsx
+import { LoginForm } from 'wasp/client/auth';
 
-- **Auth Pages:**
-  - When initially creating Auth pages (Login, Signup), use the pre-built components provided by Wasp for simplicity:
-    - `import { LoginForm, SignupForm } from 'wasp/client/auth';`
-    - These components work with the configured auth methods in [main.wasp](mdc:main.wasp).
-    - You can customize their appearance or build completely custom forms if needed.
+export function LoginPage() {
+  return (
+    <div className="flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+          Log in to Thesis Grey
+        </h2>
+      </div>
 
-- **Protected Routes/Pages:**
-  - Use the `useAuth` hook from `wasp/client/auth` to access the current user's data and check authentication status.
-  - Redirect or show alternative content if the user is not authenticated.
-  ```typescript
-  import { useAuth } from 'wasp/client/auth';
-  import { Redirect } from 'wasp/client/router'; // Or use Link
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
+          <LoginForm/>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
 
-  const MyProtectedPage = () => {
-    const { data: user, isLoading, error } = useAuth(); // Returns AuthUser | null
+### Signup Page
 
-    if (isLoading) return <div>Loading...</div>;
-    // If error, it likely means the auth session is invalid/expired
-    if (error || !user) {
-      // Redirect to login page defined in main.wasp (auth.onAuthFailedRedirectTo)
-      // Or return <Redirect to="/login" />;
-      return <div>Please log in to access this page.</div>;
-    }
+```tsx
+// src/client/auth/pages/SignupPage.tsx
+import { SignupForm } from 'wasp/client/auth';
 
-    // User is authenticated, render the page content
-    // Use helpers like getEmail(user) or getUsername(user) if needed
-    return <div>Welcome back!</div>; // Access user.id if needed
-  };
-  ```
+export function SignupPage() {
+  return (
+    <div className="flex min-h-screen flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
+          Create an account
+        </h2>
+      </div>
 
-## Wasp Auth User Fields (`AuthUser`)
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
+          <SignupForm/>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
 
-- The `user` object returned by `useAuth()` hook on the client, or accessed via `context.user` in server operations/APIs, is an `AuthUser` object (type imported from `wasp/auth`).
-- **Auth-specific fields** (email, username, verification status, provider IDs) live under the nested `identities` property based on the auth method used.
-  - e.g., `user.identities.email?.email`
-  - e.g., `user.identities.username?.username`
-  - e.g., `user.identities.google?.providerUserId`
-  - **Always check for `null` or `undefined`** before accessing these nested properties, as a user might not have used all configured auth methods.
-- **Helpers:** Wasp provides helper functions from `wasp/auth` for easier access to common identity fields on the `AuthUser` object:
-  - `import { getEmail, getUsername } from 'wasp/auth';`
-  - `const email = getEmail(user); // Returns string | null`
-  - `const username = getUsername(user); // Returns string | null`
-- **Standard User Entities:** Remember that standard `User` entities fetched via `context.entities.User.findMany()` or similar in server code **DO NOT** automatically include these auth identity fields (`email`, `username`, etc.) by default. They only contain the fields defined directly in your [schema.prisma](mdc:schema.prisma) `User` model.
-- **Recommendation:**
-  - If you need *frequent* access to an identity field like `email` or `username` for *any* user (not just the currently logged-in one accessed via `context.user` or `useAuth`) and want to query it easily via `context.entities.User`, consider this approach:
-    1.  **Add the field directly** to your `User` model in [schema.prisma](mdc:schema.prisma).
-        ```prisma
-        model User {
-          id    Int     @id @default(autoincrement())
-          email String? @unique // Add if needed frequently
-          // other fields...
-        }
-        ```
-    2.  **Ensure this field is populated correctly** when the user signs up or updates their profile. You might need a Wasp action to update the `User` model after signup or when an email is verified.
-    3.  This makes the field (`email` in this example) a standard, queryable field on your `User` entity, accessible via `context.entities.User`, separate from the `AuthUser`'s identity structure.
+## Protected Routes
 
-- **Common Issue:** If auth isn't working, first verify the `auth` configuration in [main.wasp](mdc:main.wasp) is correct and matches your intent (correct `userEntity`, enabled `methods`, `onAuthFailedRedirectTo`). Ensure environment variables for social providers are set if applicable. Check the Wasp server logs for errors. 
+Routes that require authentication in Thesis Grey use the `authRequired` property:
+
+```wasp
+// In main.wasp
+page SearchStrategyPage {
+  authRequired: true,
+  component: import { SearchStrategyPage } from "@src/client/searchStrategy/pages/SearchStrategyPage"
+}
+
+page SearchExecutionPage {
+  authRequired: true,
+  component: import { SearchExecutionPage } from "@src/client/serpExecution/pages/SearchExecutionPage"
+}
+
+// ... other protected pages
+```
+
+## Client-Side Authentication
+
+Thesis Grey uses the `useAuth` hook to access user information in React components:
+
+```tsx
+// Example component that uses authentication data
+import { useAuth } from 'wasp/client/auth';
+
+export function ProfilePage() {
+  const { data: user, isLoading, error } = useAuth();
+  
+  if (isLoading) return <div>Loading...</div>;
+  if (error || !user) return <div>Error: {error?.message}</div>;
+  
+  return (
+    <div>
+      <h1>Profile</h1>
+      <p>Username: {user.username}</p>
+      {/* Other profile information */}
+    </div>
+  );
+}
+```
+
+## Navigation & Auth-Aware Components
+
+Thesis Grey implements auth-aware navigation to show different options based on authentication status:
+
+```tsx
+// src/client/components/NavBar.tsx
+import { Link } from 'react-router-dom';
+import { useAuth, logout } from 'wasp/client/auth';
+
+export function NavBar() {
+  const { data: user } = useAuth();
+  
+  return (
+    <nav className="bg-gray-800 text-white p-4">
+      <div className="container mx-auto flex justify-between items-center">
+        <Link to="/" className="text-xl font-bold">Thesis Grey</Link>
+        
+        <div className="flex space-x-4">
+          {user ? (
+            <>
+              <Link to="/search-strategy">Search Sessions</Link>
+              <Link to="/profile">Profile</Link>
+              <button 
+                onClick={logout}
+                className="bg-red-600 px-3 py-1 rounded hover:bg-red-700"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">Login</Link>
+              <Link to="/signup">Sign Up</Link>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
+```
+
+## Server-Side Authorization
+
+All Thesis Grey operations incorporate consistent authorization checks:
+
+```typescript
+// Example authorization pattern in operations
+export const getSearchSession = async ({ id }, context) => {
+  // 1. Check if user is authenticated
+  if (!context.user) {
+    throw new HttpError(401, "Unauthorized");
+  }
+  
+  // 2. Fetch the requested resource
+  const session = await context.entities.SearchSession.findUnique({
+    where: { id }
+  });
+  
+  // 3. Verify resource exists and user has access
+  if (!session) {
+    throw new HttpError(404, "Session not found");
+  }
+  
+  if (session.userId !== context.user.id) {
+    throw new HttpError(403, "You don't have access to this session");
+  }
+  
+  // 4. Proceed with operation
+  return session;
+};
+```
+
+## Authentication Best Practices in Thesis Grey
+
+1. **Never Skip Auth Checks**: Every server operation must verify authentication and authorization
+2. **Protected Routes**: Always use `authRequired: true` for pages that should be accessible only to logged-in users
+3. **User-Specific Data**: Always filter queries by the current user's ID to ensure data isolation
+4. **Clean Error Messages**: Provide clear but not overly detailed error messages for security
+5. **Handle Loading States**: Always handle loading and error states in components using authentication data
+
+These patterns ensure that Thesis Grey maintains a secure authentication model throughout the application.

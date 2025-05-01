@@ -3,87 +3,68 @@ description:
 globs: 
 alwaysApply: true
 ---
-# 2. Project Conventions and Rules
+# 2. Thesis Grey Project Conventions and Rules
 
-This document outlines the specific conventions, file structures, and general rules for this Wasp project.
+This document outlines the specific conventions, file structures, and general rules for the Thesis Grey project.
 
 ## Quick Reference
 
+### Thesis Grey Architecture
+
+- Vertical slice architecture organized by features:
+  - `auth`: Authentication and user management
+  - `searchStrategy`: Search session and query management 
+  - `serpExecution`: Search API integration
+  - `resultsManager`: Results processing and duplicate detection
+  - `reviewResults`: Review workflow with tagging
+  - `reporting`: PRISMA flow diagrams and exports
+
 ### Common Patterns
 
-- Define app structure in [main.wasp](mdc:main.wasp) or `main.wasp.ts`.
-- Define data models in [schema.prisma](mdc:schema.prisma).
-- Group feature code in `src/features/{featureName}` directories.
-- Group feature config definitions (e.g. routes, pages, operations, etc.) into sections within the Wasp config file ([main.wasp](mdc:main.wasp)) using the `//#region` directive:
-  ```wasp
-  // Example in @main.wasp
-  //#region {FeatureName}
-  // ... feature-specific declarations ...
-  //#endregion
-  ```
-- Use Wasp operations (queries/actions) for client-server communication (See [3-database-operations.mdc](mdc:.cursor/rules/3-database-operations.mdc)).
-- **Wasp Imports:** Import from `wasp/...` not `@wasp/...` in `.ts`/`.tsx` files.
-- Document features in `ai/docs/` with:
-  - One markdown file per feature (e.g. `ai/docs/{featureName}.md`).
-  - Operations specifications and data models.
-  - User workflows and business logic.
-  - Update documentation when implementing feature changes.
-- Reference the relevant `ai/docs/` files when writing or modifying feature code.
+- Define all entities in `main.wasp`
+- Group feature code in:
+  - `src/client/{featureName}/pages/`: Page components
+  - `src/client/{featureName}/components/`: UI components
+  - `src/server/{featureName}/queries.js`: Read operations
+  - `src/server/{featureName}/actions.js`: Write operations
+- Use Wasp operations (queries/actions) for client-server communication
+- **Wasp Imports:** Import from `wasp/...` not `@wasp/...` in `.ts`/`.tsx` files
+- Document features in `project_docs/architecture/` for reference
 
 ### Common Issues & Import Rules
 
 - **Wasp Imports in `.ts`/`.tsx`:** Always use the `wasp/...` prefix.
-  - ✅ `import { Task } from 'wasp/entities'`
-  - ✅ `import type { GetTasks } from 'wasp/server/operations'`
-  - ✅ `import { getTasks, useQuery } from 'wasp/client/operations'`
+  - ✅ `import { useAuth } from 'wasp/client/auth'`
+  - ✅ `import type { SearchSession } from 'wasp/entities'`
+  - ✅ `import { getSearchSessions, useQuery } from 'wasp/client/operations'`
   - ❌ `import { ... } from '@wasp/...'`
-  - ❌ `import { ... } from '@src/features/...'` (Use relative paths for non-Wasp imports within `src`)
-  - If you see "Cannot find module 'wasp/...'": Double-check the import path prefix.
-- **Wasp Config Imports in [main.wasp](mdc:main.wasp) :** Imports of your code *must* start with `@src/`.
-  - ✅ `component: import { LoginPage } from "@src/features/auth/LoginPage.tsx"`
-  - ❌ `component: import { LoginPage } from "../src/features/auth/LoginPage.tsx"`
-  - ❌ `component: import { LoginPage } from "client/pages/auth/LoginPage.tsx"`
-- **General Imports in `.ts`/`.tsx`:** Use relative paths for imports within the `src/` directory. Avoid using the `@src/` alias directly in `.ts`/`.tsx` files.
+- **Wasp Config Imports in `main.wasp`:** Imports of your code *must* start with `@src/`.
+  - ✅ `component: import { LoginPage } from "@src/client/auth/pages/LoginPage"`
+  - ❌ `component: import { LoginPage } from "../src/client/auth/pages/LoginPage"`
+- **General Imports in `.ts`/`.tsx`:** Use relative paths for imports within the `src/` directory.
   - If you see "Cannot find module '@src/...'": Use a relative path instead.
-- **Prisma Enum *Value* Imports:** Import directly from `@prisma/client`. See [3-database-operations.mdc](mdc:.cursor/rules/3-database-operations.mdc).
-- **Wasp Actions Client-Side:** Call actions directly using `async/await`. Avoid `useAction` unless optimistic updates are needed. See [3-database-operations.mdc](mdc:.cursor/rules/3-database-operations.mdc)`.
-  - ✅ `import { deleteTask } from 'wasp/client/operations'; await deleteTask({ taskId });`
-- Root Component (`src/App.tsx` or similar):
-  - Ensure the root component defined in @main.wasp (usually via `app.client.rootComponent`) renders the `<Outlet />` component from `react-router-dom` to display nested page content.
-    ```tsx
-    // Example Root Component
-    import React from 'react';
-    import { Outlet } from 'react-router-dom';
-    import Header from './Header'; // Example shared component
-
-    function App() {
-      return (
-        <div className="min-h-screen bg-gray-100">
-          <Header />
-          <main className="container mx-auto p-4">
-            {/* Outlet renders the content of the matched route/page */}
-            <Outlet />
-          </main>
-        </div>
-      );
-    }
-    export default App;
-    ```
+- **Wasp Actions Client-Side:** Call actions directly using `async/await`. Avoid `useAction` unless optimistic updates are needed.
+  - ✅ `import { createSearchSession } from 'wasp/client/operations'; await createSearchSession({ name, description });`
 
 ## Rules
 
 ### General Rules
 
-- Always reference the Wasp config file [main.wasp](mdc:main.wasp) as your source of truth for the app's configuration and structure.
-- Always reference the `ai/docs/` directory for information on the app's features and functionality when writing code.
-- Group feature config definitions in [main.wasp](mdc:main.wasp) using `//#region` (as noted above).
-- Group feature code into feature directories (e.g. `src/features/transactions`).
-- Use the latest Wasp version, as defined in the [main.wasp](mdc:main.wasp) file.
-- Combine Wasp operations (queries and actions) into an `operations.ts` file within the feature directory (e.g., `src/features/transactions/operations.ts`).
-- Always use TypeScript for Wasp code (`.ts`/`.tsx`).
-- Keep these rules files in `.cursor/rules/` updated with any new project conventions or changes in Wasp best practices. The original `.cursorrules` file may be kept for reference but these `.mdc` files are the primary source.
+- Always reference `main.wasp` as your source of truth for the app's configuration and structure.
+- Always reference `project_docs/architecture/` for information on app features and functionality.
+- Group feature code into feature directories (e.g., `src/client/searchStrategy`, `src/server/searchStrategy`).
+- Use TypeScript for all code (`.ts`/`.tsx`).
+- Follow the established feature pattern for new features:
+  1. Define entities in `main.wasp`
+  2. Add queries/actions in `main.wasp` 
+  3. Implement server operations in feature-specific directories
+  4. Create UI components in corresponding client directories
 
-### Wasp Dependencies
+### Feature-Specific Conventions
 
-- Avoid adding dependencies directly to the [main.wasp](mdc:main.wasp) config file.
-- Install dependencies via `npm install` instead. This updates [package.json](mdc:package.json) and [package-lock.json](mdc:package-lock.json)
+- **Authentication:** Use the built-in user authentication system with usernameAndPassword method
+- **Search Strategy:** Implement session and query management with proper user authorization checks
+- **SERP Execution:** Use the Google Search API via Serper with proper error handling 
+- **Results Manager:** Implement URL normalization and metadata extraction
+- **Review Interface:** Build tag management with color coding and note functionality
+- **Reporting:** Generate PRISMA flow diagrams and statistics with export options

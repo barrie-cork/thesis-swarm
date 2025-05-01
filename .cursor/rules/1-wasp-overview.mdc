@@ -8,53 +8,61 @@ description:
 globs: 
 alwaysApply: true
 ---
-# 1. Wasp Overview and Core Concepts
+# 1. Thesis Grey Overview and Core Concepts
 
-This document covers the fundamental concepts of the Wasp framework, the basic project structure, and deployment information.
+This document covers the fundamental concepts of the Thesis Grey application, built with the Wasp framework.
 
 ## Background Information
 
-### What is Wasp
+### What is Thesis Grey
 
-- Wasp (Web Application SPecification language) is a declarative, statically typed, domain-specific language (DSL) for building modern, full-stack web applications.
-- Unlike traditional frameworks that are sets of libraries, Wasp is a simple programming language that understands web app concepts and generates code for you.
-- Wasp integrates with React (frontend), Node.js (backend), and Prisma (database ORM) to create full-stack web applications with minimal boilerplate.
-- The Wasp compiler reads your declarative configuration in [main.wasp](mdc:main.wasp) and generates all the necessary code for a working web application.
-- For the most up-to-date and comprehensive information, always refer to the [Wasp Docs](mdc:https:/wasp.sh/docs) -- https://wasp.sh/docs 
+- Thesis Grey is a specialized application for managing grey literature in clinical guideline development.
+- Built with Wasp, a declarative DSL that integrates React, Node.js, and Prisma.
+- Follows a vertical slice architecture while leveraging Wasp's built-in capabilities.
+- Focuses on providing a streamlined workflow for literature search, review, and reporting.
 
-### Wasp Project Structure
+### Thesis Grey Project Structure
 
-- A Wasp project consists of a [main.wasp](mdc:main.wasp) (or `main.wasp.ts`) file in the root directory that defines the app's configuration.
-- The [schema.prisma](mdc:sdirectory defines your database models.
-- Your custom code lives in the `src/` directory (e.g. res/`), which contains client-side and server-side code.
-- Wasp generates additional code that connects everything together when you run your app.
+- A `main.wasp` file in the root directory defines the app's configuration, entities, routes, pages, and operations.
+- The `schema.prisma` file implicitly defined through entity declarations in `main.wasp`.
+- Custom code lives in feature-specific directories under `src/client/` and `src/server/`.
+- Key features are organized in verticals:
+  - `auth`: User authentication and profile management
+  - `searchStrategy`: Building and managing search queries
+  - `serpExecution`: Executing searches via external APIs
+  - `resultsManager`: Processing search results
+  - `reviewResults`: Tagging and annotating results
+  - `reporting`: Generating statistics and exports
 
 ### The main.wasp File
 
-- The [main.wasp](mdc:main.wasp) file is the central configuration file that defines your application structure.
-- It contains declarations for app settings, pages, routes, authentication, database entities, and operations (queries and actions).
-- Example structure:
+- The `main.wasp` file is the central configuration file that defines the application structure.
+- It contains declarations for app settings, entities, pages, routes, authentication, and operations.
+- Example structure from Thesis Grey:
   ```wasp
-  app myApp {
-    wasp: {
-      version: "^0.16.0" // Check @main.wasp for the actual version
+  app ThesisGrey {
+    title: "Thesis Grey",
+    wasp: { version: "^0.16.0" },
+    db: {
+      system: PostgreSQL,
+      prisma: {
+        clientPreviewFeatures: ["extendedWhereUnique"]
+      }
     },
-    title: "My App",
+    auth: {
+      userEntity: User,
+      methods: {
+        usernameAndPassword: {}
+      },
+      onAuthFailedRedirectTo: "/login"
+    }
   }
 
-  route HomeRoute { path: "/", to: HomePage }
-  page HomePage {
-    component: import { HomePage } from "@src/client/pages/HomePage.tsx" // Example import path
-  }
-
-  // Operations are defined here, see 3-database-operations.mdc
-  query getTasks {
-    fn: import { getTasks } from "@src/server/queries.js",
-    entities: [Task]
-  }
+  // Entities, routes, pages, queries, and actions follow...
   ```
 
 ### Deployment
 
-- Wasp applications can be deployed to various hosting providers.
-- Wasp has a built-in one-command deployment to fly.io, e.g. `wasp deploy fly`. See the @Wasp CLI Deployment docs for more information. 
+- Thesis Grey can be deployed to Fly.io using the Wasp deployment command.
+- See the [Wasp Deployment Docs](mdc:https:/wasp-lang.com/docs/advanced/deployment) for details.
+- For Fly.io deployment instructions, see rule `8-deployment`. 

@@ -3,4 +3,165 @@ description:
 globs: 
 alwaysApply: false
 ---
-Think about a few possible scenarios or solutions to this problem. Present the one you think is best suited to solve this issue and provide rationale for why you think it's the best one.
+# 7. Problem-Solving Approaches for Thesis Grey
+
+This document outlines problem-solving strategies and decision frameworks specifically designed for the Thesis Grey application.
+
+## Problem-Solving Methodology
+
+### System-Level Thinking
+
+When approaching Thesis Grey issues, consider these layers:
+
+1. **Wasp Framework Layer**: Issues related to the Wasp DSL, configuration, or compiler
+2. **React/Node.js Layer**: Problems in the client or server implementation
+3. **Database Layer**: Data modeling, relationships, or query performance
+4. **Integration Layer**: External API connections and data processing
+5. **Business Logic Layer**: Core functionality specific to grey literature management
+
+### Development Workflow
+
+Follow this workflow when implementing new features or solving problems:
+
+1. **Understand the Entity Model**: Review `main.wasp` to understand data relationships
+2. **Trace User Flow**: Follow the user journey from UI to server and back
+3. **Examine Related Verticals**: Check if other feature verticals can provide patterns
+4. **Prototype Solution**: Create minimal implementation to validate approach
+5. **Refine Implementation**: Enhance solution with error handling and edge cases
+
+## Common Scenarios and Solutions
+
+### Search Strategy Builder Issues
+
+#### Problem: Complex Search Query Construction
+- **Solution**: Implement a hierarchical query builder that supports:
+  - Boolean operators (AND, OR, NOT)
+  - Grouping with parentheses
+  - Field-specific searching (title, abstract, etc.)
+  - Example implementation pattern:
+  ```javascript
+  const buildQueryString = (queryTree) => {
+    if (queryTree.type === 'group') {
+      const childQueries = queryTree.children.map(buildQueryString).join(` ${queryTree.operator} `);
+      return `(${childQueries})`;
+    } else {
+      return `${queryTree.field}:${queryTree.value}`;
+    }
+  };
+  ```
+
+#### Problem: Search History Management
+- **Solution**: Implement versioning for search strategies
+  - Each modification creates a new version
+  - Maintain parent-child relationships between versions
+  - Allow reverting to previous versions
+
+### SERP Execution Challenges
+
+#### Problem: Handling Large Result Sets
+- **Solution**: Implement pagination and batched processing
+  - Process results in batches of 50-100
+  - Store intermediate state in the database
+  - Provide progress indicators to users
+
+#### Problem: API Errors During Long Searches
+- **Solution**: Implement resilient search execution
+  - Save search state after each successful batch
+  - Implement resumable searches from last successful position
+  - Add automatic retry with exponential backoff
+
+### Results Management Complexity
+
+#### Problem: Inconsistent Duplicate Detection
+- **Solution**: Multi-factor similarity calculation
+  - Assign weights to different similarity factors
+  - Implement configurable thresholds
+  - Allow manual override for edge cases
+
+#### Problem: Slow Batch Operations on Results
+- **Solution**: Optimize bulk operations
+  - Use Prisma's `createMany` and `updateMany`
+  - Implement server-side filtering before data transfer
+  - Add indexing for frequently queried fields
+
+## Decision-Making Framework
+
+When faced with implementation choices in Thesis Grey, evaluate options using this framework:
+
+### Feature Implementation Decisions
+
+1. **Alignment with User Workflow**
+   - How does the solution fit into the grey literature review process?
+   - Does it reduce manual work for researchers?
+
+2. **Technical Considerations**
+   - Does it leverage Wasp's built-in capabilities?
+   - Is it maintainable and extensible?
+   - Does it follow project conventions?
+
+3. **Performance Impact**
+   - How will it scale with large datasets?
+   - Are there potential bottlenecks?
+
+4. **Implementation Complexity**
+   - What is the development effort required?
+   - Are there simpler alternatives that meet most requirements?
+
+### Technology Selection Criteria
+
+When choosing libraries or implementation approaches:
+
+1. **Compatibility**: Must work with Wasp, React, and Node.js ecosystem
+2. **Maintainability**: Prefer established libraries with active maintenance
+3. **Simplicity**: Choose solutions that minimize complexity
+4. **Performance**: Consider memory usage and execution speed
+5. **Bundle Size**: For client-side libraries, consider impact on load time
+
+## Thinking Patterns for Specific Features
+
+### Review Interface Design
+
+The review interface should balance:
+
+- **Efficiency**: Minimize clicks for common actions
+- **Completeness**: Capture all necessary metadata
+- **Clarity**: Present article information clearly
+- **Context**: Maintain awareness of overall review progress
+
+Implementation approach:
+```javascript
+// Pattern for implementing keyboard shortcuts in review interface
+useEffect(() => {
+  const handleKeyPress = (e) => {
+    if (e.key === 'e' && e.ctrlKey) {
+      // Mark as excluded
+      handleExcludeResult(currentResult.id);
+    } else if (e.key === 'i' && e.ctrlKey) {
+      // Mark as included
+      handleIncludeResult(currentResult.id);
+    }
+    // Additional shortcuts...
+  };
+  
+  document.addEventListener('keydown', handleKeyPress);
+  return () => document.removeEventListener('keydown', handleKeyPress);
+}, [currentResult]);
+```
+
+### Reporting Feature Architecture
+
+When implementing reporting:
+
+1. **Separate Data and Presentation**
+   - Create data aggregation services independent of visualization
+   - Allow multiple visualization options for the same data
+
+2. **Progressive Enhancement**
+   - Start with basic statistical reporting
+   - Add visualization capabilities incrementally
+   - Plan for export formats (CSV, PDF) from the beginning
+
+3. **Background Generation**
+   - Generate complex reports asynchronously
+   - Store report results for later retrieval
+   - Notify users when reports are complete
