@@ -12,7 +12,7 @@ The application follows a phased implementation approach:
 
 ## Key Features
 
-- Search strategy building with PICO framework support
+- Search strategy building with PIC framework support
 - Search execution via Google Search API 
 - Results processing and management
 - Review interface with tagging and notes

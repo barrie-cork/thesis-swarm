@@ -147,6 +147,7 @@ entity Note {=psl
 psl=}
 
 // Routes
+route HomeRoute { path: "/", to: HomePage }
 route LoginRoute { path: "/login", to: LoginPage }
 route SignupRoute { path: "/signup", to: SignupPage }
 route ProfileRoute { path: "/profile", to: ProfilePage }
@@ -157,6 +158,10 @@ route ReviewRoute { path: "/review/:sessionId", to: ReviewPage }
 route ReportingRoute { path: "/reporting/:sessionId", to: ReportingPage }
 
 // Pages
+page HomePage {
+  component: import { HomePage } from "@src/client/pages/HomePage"
+}
+
 page LoginPage {
   component: import { LoginPage } from "@src/client/auth/pages/LoginPage"
 }
