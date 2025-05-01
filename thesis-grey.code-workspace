@@ -7,5 +7,7 @@
 			"path": "C:/PythonProjects/software-dev-prompt-library-main"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"powershell.cwd": "thesis-grey"
+	}
 }
