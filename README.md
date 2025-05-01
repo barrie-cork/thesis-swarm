@@ -26,6 +26,26 @@ The application follows a phased implementation approach:
 - **Framework**: Wasp (full-stack framework)
 - **APIs**: Google Search API via Serper
 
+## Architecture
+
+Thesis Grey follows a Vertical Slice Architecture (VSA) while leveraging Wasp's built-in capabilities:
+
+### Core Layers
+
+- **Domain Layer**: Business entities defined through Prisma schema
+- **Application Layer**: Use cases implemented via Wasp actions and queries
+- **Infrastructure Layer**: Minimized through Wasp's built-in capabilities:
+  - Authentication via Wasp's auth system
+  - Database access via Wasp's Prisma integration
+  - API layer via Wasp operations
+- **Presentation Layer**: React components with Wasp's routing and hooks
+
+### Cross-cutting Concerns
+
+- **Error Handling**: Wasp's HttpError for operation failures
+- **Authentication**: Wasp's built-in auth system with JWT
+- **Security**: Route protection via Wasp's authRequired property
+
 ## Documentation
 
 Detailed documentation can be found in the `project_docs` directory:
@@ -35,3 +55,27 @@ Detailed documentation can be found in the `project_docs` directory:
 ## Development
 
 This project is under active development. See the PRDs for implementation details and roadmap.
+
+### Getting Started
+
+1. **Install Wasp:**
+   ```bash
+   curl -sSL https://get.wasp-lang.dev/installer.sh | sh
+   ```
+
+2. **Start PostgreSQL:**
+   ```bash
+   wasp db start
+   ```
+
+3. **Run migrations:**
+   ```bash
+   wasp db migrate-dev
+   ```
+
+4. **Start the development server:**
+   ```bash
+   wasp start
+   ```
+
+5. Open your browser to `http://localhost:3000`

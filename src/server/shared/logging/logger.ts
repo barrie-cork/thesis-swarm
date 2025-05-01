@@ -19,88 +19,35 @@ export interface LogContext {
 }
 
 /**
- * Simple logger implementation
+ * Simple logger wrapper around console methods
  */
-class Logger {
-  /**
-   * Log a message
-   * @param level The log level
-   * @param message The log message
-   * @param context The log context
-   */
-  private log(level: LogLevel, message: string, context?: LogContext): void {
-    const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      level,
-      message,
-      ...context,
-    };
-    
-    // In production, we would use a proper logging library
-    // For now, we just log to the console
-    console.log(JSON.stringify(logEntry));
-  }
-
+export const logger = {
   /**
    * Log a debug message
    * @param message The log message
-   * @param context The log context
+   * @param data Additional data to log
    */
-  debug(message: string, context?: LogContext): void {
-    this.log(LogLevel.DEBUG, message, context);
-  }
-
+  debug: (message: string, data?: any) => console.debug(message, data),
+  
   /**
    * Log an info message
    * @param message The log message
-   * @param context The log context
+   * @param data Additional data to log
    */
-  info(message: string, context?: LogContext): void {
-    this.log(LogLevel.INFO, message, context);
-  }
-
+  info: (message: string, data?: any) => console.info(message, data),
+  
   /**
    * Log a warning message
    * @param message The log message
-   * @param context The log context
+   * @param data Additional data to log
    */
-  warn(message: string, context?: LogContext): void {
-    this.log(LogLevel.WARN, message, context);
-  }
-
+  warn: (message: string, data?: any) => console.warn(message, data),
+  
   /**
    * Log an error message
    * @param message The log message
-   * @param error The error
-   * @param context The log context
+   * @param error The error object
+   * @param data Additional data to log
    */
-  error(message: string, error?: Error, context?: LogContext): void {
-    this.log(LogLevel.ERROR, message, {
-      ...context,
-      error: error ? {
-        message: error.message,
-        stack: error.stack,
-      } : undefined,
-    });
-  }
-
-  /**
-   * Log a fatal message
-   * @param message The log message
-   * @param error The error
-   * @param context The log context
-   */
-  fatal(message: string, error?: Error, context?: LogContext): void {
-    this.log(LogLevel.FATAL, message, {
-      ...context,
-      error: error ? {
-        message: error.message,
-        stack: error.stack,
-      } : undefined,
-    });
-  }
-}
-
-// Export a singleton instance
-export const logger = new Logger();
+  error: (message: string, error?: Error, data?: any) => console.error(message, error, data)
+};

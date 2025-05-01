@@ -1,41 +1,15 @@
 /**
  * Application configuration
+ * 
+ * Note: Many settings previously defined here are now handled by Wasp automatically.
+ * For example, authentication and database configuration are managed by Wasp.
  */
 export const config = {
-  /**
-   * Server configuration
-   */
-  server: {
-    port: process.env.PORT || 3001,
-  },
-
-  /**
-   * Database configuration
-   */
-  database: {
-    url: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/thesis_grey',
-  },
-
-  /**
-   * Authentication configuration
-   */
-  auth: {
-    jwtSecret: process.env.JWT_SECRET || 'development_jwt_secret',
-    jwtExpiresIn: '1d',
-  },
-
   /**
    * Search configuration
    */
   search: {
     serperApiKey: process.env.SERPER_API_KEY || '',
-    defaultMaxResults: 100,
-  },
-
-  /**
-   * Logging configuration
-   */
-  logging: {
-    level: process.env.LOG_LEVEL || 'info',
-  },
+    defaultMaxResults: parseInt(process.env.DEFAULT_MAX_RESULTS || '100')
+  }
 };
