@@ -19,12 +19,26 @@ This document outlines the specific conventions, file structures, and general ru
   - `reviewResults`: Review workflow with tagging
   - `reporting`: PRISMA flow diagrams and exports
 
+### Feature Directory Structure
+
+Each feature follows a consistent internal structure:
+```
+feature/
+├── pages/           # Page components that correspond to routes
+├── components/      # UI components specific to this feature
+├── hooks/           # Custom React hooks for this feature
+└── utils/           # Utility functions specific to this feature
+```
+
 ### Common Patterns
 
 - Define all entities in `main.wasp`
 - Group feature code in:
   - `src/client/{featureName}/pages/`: Page components
   - `src/client/{featureName}/components/`: UI components
+  - `src/client/{featureName}/hooks/`: Feature-specific React hooks
+  - `src/client/{featureName}/utils/`: Feature-specific utility functions
+  - `src/client/{featureName}/types.ts`: Type definitions for the feature
   - `src/server/{featureName}/queries.js`: Read operations
   - `src/server/{featureName}/actions.js`: Write operations
 - Use Wasp operations (queries/actions) for client-server communication
@@ -41,8 +55,11 @@ This document outlines the specific conventions, file structures, and general ru
 - **Wasp Config Imports in `main.wasp`:** Imports of your code *must* start with `@src/`.
   - ✅ `component: import { LoginPage } from "@src/client/auth/pages/LoginPage"`
   - ❌ `component: import { LoginPage } from "../src/client/auth/pages/LoginPage"`
-- **General Imports in `.ts`/`.tsx`:** Use relative paths for imports within the `src/` directory.
-  - If you see "Cannot find module '@src/...'": Use a relative path instead.
+- **Feature Component Imports:** Use relative paths for imports within the same feature.
+  - ✅ `import { CreateSessionForm } from '../components/CreateSessionForm'`
+  - ✅ `import { useSearchSessions } from '../hooks/useSearchSessions'`
+- **Cross-Feature Component Imports:** Use absolute paths when importing from another feature.
+  - ✅ `import { MainLayout } from '../../shared/components/MainLayout'`
 - **Wasp Actions Client-Side:** Call actions directly using `async/await`. Avoid `useAction` unless optimistic updates are needed.
   - ✅ `import { createSearchSession } from 'wasp/client/operations'; await createSearchSession({ name, description });`
 
@@ -59,6 +76,15 @@ This document outlines the specific conventions, file structures, and general ru
   2. Add queries/actions in `main.wasp` 
   3. Implement server operations in feature-specific directories
   4. Create UI components in corresponding client directories
+
+### Component Organization Rules
+
+- **Pages:** Should be placed in `pages/` directory and focus on composition of components.
+- **Components:** All reusable UI elements should be in `components/` directory.
+- **Hooks:** Feature-specific hooks should be in `hooks/` directory.
+- **Utils:** Helper functions should be in `utils/` directory.
+- **Types:** Feature-specific type definitions should be in `types.ts` at the feature root level.
+- **Shared Components:** Truly shared components (like MainLayout) should be in `src/client/shared/components/`.
 
 ### Feature-Specific Conventions
 
