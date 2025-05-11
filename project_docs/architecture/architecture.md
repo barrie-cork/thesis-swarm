@@ -170,16 +170,19 @@ The Application Layer implements the use cases of the application, orchestrating
 #### Use Cases
 - **User Authentication**: Registration, login, and profile management
 - **Search Strategy Building**: Creating and managing search sessions and queries
-- **Search Execution**: Executing search queries against external search engines
-- **Results Management**: Processing, normalizing, and deduplicating search results
+- **Search Execution**: Executing search queries against external search engines, including managing and displaying the real-time progress on the `Search Execution Status Page`. In Phase 2, this page provides a consolidated view of both SERP query execution and subsequent results processing.
+- **Results Management**: Processing, normalizing, and deduplicating search results. In Phase 2, this includes providing specialized interfaces for Lead Reviewers, such as the 'Deduplication Overview' and 'Processing Status Dashboard', for finer-grained control and monitoring.
 - **Review Process**: Tagging, annotating, and reviewing search results
 - **Reporting**: Generating reports and exporting data
+- **Review Session Lifecycle & Navigation**: Managing the overall review session lifecycle and user navigation. This includes directing users to the appropriate stage of their review (e.g., `Search Strategy Builder`, `Search Execution Status Page`, `Results Overview Page`). In Phase 2, this is further enhanced by the `Session Hub Page`, which acts as a central navigation point for a selected review session, offering role-dependent views and actions for both Lead Reviewers and Reviewers.
 
 #### Services
 - **AuthService**: Handles user authentication and authorization
-- **SearchService**: Manages search sessions and queries
-- **ResultsService**: Processes and manages search results
-- **ReviewService**: Manages the review process
+- **SearchService**: Manages search sessions and queries. It also plays a role in providing data for and managing the state related to the `Search Execution Status Page`.
+- **ResultsService**: Processes and manages search results. In Phase 2, it exposes data and functionalities for specialized Lead Reviewer interfaces like the 'Deduplication Overview' and 'Processing Status Dashboard'.
+- **ReviewService**: 
+  - **Phase 1 & 2:** Manages core aspects of the review process for individual sessions, such as tagging and notes. Crucially, it is responsible for operations that support the `Review Manager Dashboard`, such as fetching the list of all review sessions associated with a user.
+  - **Phase 2:** Its role expands to include orchestrating the `Session Hub Page` (providing data and handling actions for this session-specific dashboard) and managing more complex role-based access and collaborative features within a review session.
 - **ReportingService**: Generates reports and exports data
 
 #### State Management
@@ -203,11 +206,10 @@ The Infrastructure Layer provides technical capabilities to support the applicat
 The Presentation Layer handles the user interface and user interactions.
 
 #### UI Components
-- React components organized by feature (auth, searchStrategy, serpExecution, etc.)
-- Reusable UI components in the shared directory
+- React components organized by feature (auth, searchStrategy, serpExecution, etc.). Key top-level page components include the `Review Manager Dashboard`, `Search Strategy Builder`, `Search Execution Status Page` (with Phase 1 and enhanced Phase 2 versions), `Results Overview Page`, and in Phase 2, the `Session Hub Page`. Reusable UI components in the shared directory
 
 #### Routing
-- React Router (provided by Wasp) for client-side routing
+- React Router (provided by Wasp) for client-side routing, directing users to feature-specific pages like the `Search Strategy Builder`, `Search Execution Status Page`, `Results Overview Page`, and the Phase 2 `Session Hub Page`, based on application state and user actions.
 
 #### Styling
 - TailwindCSS for utility-first styling
@@ -225,7 +227,7 @@ The Presentation Layer handles the user interface and user interactions.
 - **Log Levels**: DEBUG, INFO, WARN, ERROR, and FATAL
 
 ### Security
-- **JWT-based Authentication**: Secure authentication using JSON Web Tokens
+- **JWT-based Authentication**: Secure authentication using JSON Web Tokens. This foundation is used to implement Role-Based Access Control (RBAC), determining user capabilities on pages like the `Session Hub Page` and for actions such as search re-execution or accessing administrative views of results processing.
 - **Input Validation**: Validation of all user inputs to prevent injection attacks
 - **CSRF Protection**: Protection against Cross-Site Request Forgery attacks
 
@@ -267,6 +269,8 @@ The application follows a unidirectional data flow:
 4. **Service Orchestration**: The service orchestrates the use case, calling domain entities and interfaces
 5. **Data Access**: The repositories access the database via Prisma ORM
 6. **Response Flow**: The response flows back through the layers to the UI
+
+This flow applies to all interactions, including navigation to and actions within new workflow pages such as the `Search Execution Status Page` and the `Session Hub Page`, where services provide the necessary data and handle operations initiated by user actions on these pages.
 
 ## Interface Contracts
 The application defines clear interface contracts between components:

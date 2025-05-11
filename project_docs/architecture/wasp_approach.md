@@ -1,5 +1,7 @@
 # Leveraging Wasp Framework Features
 
+**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/architecture/workflow.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
+
 ## Overview
 
 Thesis Grey leverages the Wasp framework's built-in capabilities to eliminate custom boilerplate code and focus on the core business logic. This document outlines how we've utilized Wasp's features instead of building custom infrastructure.
@@ -12,7 +14,7 @@ The `main.wasp` file serves as the central configuration for the entire applicat
 
 - Application metadata and settings
 - Entity (database model) definitions
-- Routes and pages with authentication requirements
+- Routes and pages with authentication requirements. **This includes routes and page definitions for key workflow stages such as the `Review Manager Dashboard`, `Search Strategy Builder`, `Search Execution Status Page`, `Results Overview Page`, and in Phase 2, the `Session Hub Page` and specialized Lead Reviewer UIs within `Results Manager`.**
 - Client-server operations (queries and actions)
 
 This declarative approach eliminates the need for manual configuration of routing, authentication flows, and database connections.
@@ -35,7 +37,7 @@ This provides:
 - JWT token management
 - User registration and login flows
 - Session handling
-- Protected routes with the `authRequired: true` property
+- Protected routes with the `authRequired: true` property. **This core authentication is the foundation upon which Thesis Grey's Phase 2 Role-Based Access Control (RBAC) is built. While Wasp handles the basic authentication, application-level logic within operations and components uses the authenticated user's context to determine their role within a specific review session, thereby controlling access to features and data on pages like the `Session Hub Page` or administrative interfaces like the `Deduplication Overview` in the Results Manager.**
 
 ### 3. Operation System (Queries & Actions)
 
@@ -56,7 +58,7 @@ action createSearchSession {
 Benefits:
 - Type-safe client-server communication
 - Automatic data fetching and caching via React Query
-- Entity-based access control
+- Entity-based access control. **Wasp operations are central to fetching data for new workflow pages (e.g., progress data for the `Search Execution Status Page`, or aggregated session information for the `Session Hub Page`) and performing role-aware actions based on the authenticated user.**
 - Optimistic UI updates
 
 ### 4. Error Handling
@@ -107,7 +109,7 @@ feature/
 ```
 
 This organization:
-- Groups related code together
+- Groups related code together (e.g., all client and server logic for the `serpExecution` feature, including its `SearchExecutionStatusPage.tsx` and related components, resides within `src/client/serpExecution/` and `src/server/serpExecution/`). **Similarly, the Phase 2 `Session Hub Page` and its logic would typically reside within the `reviewManager` feature's directories.**
 - Minimizes cross-feature dependencies
 - Makes features easier to understand and maintain
 
@@ -116,16 +118,16 @@ This organization:
 Authentication leverages Wasp's built-in system:
 
 ```tsx
-// Page definition in main.wasp
-page ProfilePage {
+// Page definition in main.wasp (Example for Phase 2 Session Hub Page)
+page SessionHubPage {
   authRequired: true,
-  component: import { ProfilePage } from "@src/client/auth/pages/ProfilePage"
+  component: import { SessionHubPage } from "@src/client/reviewManager/pages/SessionHubPage"
 }
 
 // Client-side usage
 import { useAuth } from 'wasp/client/auth';
 
-function ProfilePage() {
+function SessionHubPage() {
   const { data: user } = useAuth();
   // ...
 }
@@ -139,10 +141,17 @@ export const getSearchSession = async ({ id }, context) => {
     throw new HttpError(401, "Unauthorized");
   }
   
-  // Check if the user has access to this session
-  if (session.userId !== context.user.id) {
-    throw new HttpError(403, "You don't have access to this session");
-  }
+  // Check if the user has access to this session (Phase 1)
+  // if (session.userId !== context.user.id) { ... }
+  
+  // In Phase 2, this check becomes more nuanced, involving the user's role 
+  // within the specific session (e.g., Lead Reviewer, Reviewer) to grant access 
+  // to the session data or specific administrative actions.
+  // Conceptual example:
+  // const userRoleForSession = await getUserRoleForSession(context.user.id, session.id, context.entities);
+  // if (userRoleForSession !== 'Lead Reviewer' && session.userId !== context.user.id) {
+  //   throw new HttpError(403, "Access Denied or Insufficient Privileges");
+  // }
 }
 ```
 

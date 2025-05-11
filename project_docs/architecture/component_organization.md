@@ -36,8 +36,7 @@ The application is organized into the following feature modules:
    - Query building interface
 
 4. **serpExecution**: Search execution against external APIs
-   - Search execution interface
-   - Progress tracking
+   - **The `Search Execution Status Page` (with distinct Phase 1 and Phase 2 functionalities) which provides progress tracking for SERP query execution and, in Phase 2, for results processing.**
 
 5. **resultsManager**: Results processing and management
    - Results display and filtering
@@ -51,6 +50,8 @@ The application is organized into the following feature modules:
    - Report generation
    - Data export functionality
 
+8. **reviewManager**: Management of review sessions. This includes the **`Review Manager Dashboard`** (listing all user-associated review sessions) and, in Phase 2, the **`Session Hub Page`**. The `Session Hub Page` serves as a central navigation and management point for a specific selected review session, offering role-dependent views and functionalities (e.g., for strategy, results, team, settings).
+
 Additionally, there is a `shared` directory for truly cross-cutting components:
 
 ```
@@ -63,7 +64,7 @@ shared/
 
 ### Pages
 
-Page components are the top-level components that correspond to routes defined in `main.wasp`. They:
+Page components are the top-level components that correspond to routes defined in `main.wasp`. **Examples include the `Review Manager Dashboard`, `Search Strategy Builder`, `Search Execution Status Page`, `Results Overview Page`, and the Phase 2 `Session Hub Page`.** They:
 - Focus on composition rather than implementation
 - Use hooks for data fetching and state management
 - Delegate UI rendering to smaller components

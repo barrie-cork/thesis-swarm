@@ -1,8 +1,10 @@
 # Thesis Grey: Phase 1 PRD
 
+**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/architecture/workflow.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
+
 ## Project Overview
 
-Thesis Grey is a specialised search application designed to facilitate the discovery and management of grey literature for clinical guideline development. The application follows a phased implementation approach where Phase 1 delivers core functionality with a streamlined feature set, establishing the foundation for more advanced capabilities in Phase 2.
+Thesis Grey is a specialised search application designed to facilitate the discovery and management of grey literature for clinical guideline development. The application follows a phased implementation approach where Phase 1 delivers core functionality with a streamlined feature set, establishing the foundation for more advanced capabilities in Phase 2. **Upon successful authentication, users are directed to the `Review Manager Dashboard`. This dashboard serves as the central hub where users can view and manage their existing review sessions or initiate new ones.**
 
 This PRD outlines the Phase 1 implementation, which follows Vertical Slice Architecture (VSA) principles to deliver a complete working application focused on essential features while providing clear extension points for future development.
 
@@ -182,6 +184,7 @@ thesis-grey/
 ├── src/
 │   ├── client/               # Client-side code
 │   │   ├── auth/             # Authentication UI components
+│   │   ├── reviewManager/    # Review session listing and management (Review Manager Dashboard)
 │   │   ├── searchStrategy/   # Search strategy builder components
 │   │   ├── serpExecution/    # Search execution components
 │   │   ├── resultsManager/   # Results processing components
@@ -190,6 +193,7 @@ thesis-grey/
 │   │   └── shared/           # Shared UI components
 │   ├── server/               # Server-side code
 │   │   ├── auth/             # Authentication logic
+│   │   ├── reviewManager/    # Server logic for review session management
 │   │   ├── searchStrategy/   # Search strategy logic
 │   │   ├── serpExecution/    # Search execution logic
 │   │   ├── resultsManager/   # Results processing logic
@@ -256,6 +260,7 @@ Phase 1 will utilize the Wasp full-stack framework, which integrates several mod
 ```wasp
 app ThesisGrey {
   // ...
+  wasp: { version: "^0.16.0" },
   auth: {
     userEntity: User,
     methods: {
@@ -263,6 +268,12 @@ app ThesisGrey {
     },
     onAuthFailedRedirectTo: "/login"
   }
+}
+
+route RootRoute { path: "/", to: ReviewManagerDashboardPage }
+page ReviewManagerDashboardPage {
+  authRequired: true,
+  component: import { ReviewManagerDashboardPage } from "@src/client/reviewManager/pages/ReviewManagerDashboardPage"
 }
 
 route LoginRoute { path: "/login", to: LoginPage }
@@ -293,6 +304,7 @@ page ProfilePage {
 - Advanced roles and permissions system
 - Organization-based access control
 - Collaboration features
+- Navigation to a centralized `Session Hub Page` for detailed session management.
 
 ### 2. Search Strategy Builder
 
@@ -338,6 +350,7 @@ action updateSearchQuery {
 - Simple query generation
 - Query preview
 - PICO framework support
+- Executing searches transitions the user to the `Search Execution Status Page`.
 
 **Extension points for Phase 2:**
 - Advanced concept relationships
@@ -351,13 +364,14 @@ action updateSearchQuery {
 **Phase 1 Implementation:**
 
 ```wasp
-route SearchExecutionRoute { path: "/search-execution/:sessionId", to: SearchExecutionPage }
-page SearchExecutionPage {
+// Route for the Search Execution Status Page
+route SearchExecutionStatusRoute { path: "/session/:sessionId/status", to: SearchExecutionStatusPage }
+page SearchExecutionStatusPage {
   authRequired: true,
-  component: import { SearchExecutionPage } from "@src/client/serpExecution/pages/SearchExecutionPage"
+  component: import { SearchExecutionStatusPage } from "@src/client/serpExecution/pages/SearchExecutionStatusPage"
 }
 
-query getSearchQueries {
+query getSearchQueries { // This might be used by SearchStrategy or pre-execution checks
   fn: import { getSearchQueries } from "@src/server/serpExecution/queries.js",
   entities: [SearchQuery]
 }
@@ -376,8 +390,8 @@ action executeSearchQuery {
 **Requirements:**
 - Single API integration (Google Search API via Serper)
 - Basic pagination handling
-- Simple progress tracking
-- Search execution
+- Simple progress tracking via the dedicated `Search Execution Status Page`. This page displays the progress of SERP query execution and, upon completion, transitions the user to the `Results Overview Page`.
+- Search execution initiation
 - Raw result storage
 - Basic error handling
 
@@ -394,13 +408,14 @@ action executeSearchQuery {
 **Phase 1 Implementation:**
 
 ```wasp
-route ResultsManagerRoute { path: "/results/:sessionId", to: ResultsManagerPage }
-page ResultsManagerPage {
+// Route for the Results Overview Page
+route ResultsOverviewRoute { path: "/session/:sessionId/overview", to: ResultsOverviewPage }
+page ResultsOverviewPage {
   authRequired: true,
-  component: import { ResultsManagerPage } from "@src/client/resultsManager/pages/ResultsManagerPage"
+  component: import { ResultsOverviewPage } from "@src/client/resultsManager/pages/ResultsOverviewPage"
 }
 
-query getRawResults {
+query getRawResults { // Typically used by the backend processing
   fn: import { getRawResults } from "@src/server/resultsManager/queries.js",
   entities: [RawSearchResult]
 }
@@ -417,12 +432,13 @@ action processSessionResults {
 ```
 
 **Requirements:**
-- Basic result processing and normalization
-- Simple URL normalization (for consistency, not for deduplication)
-- Basic metadata extraction (domain, file type)
-- Filtering and sorting of results
-- Result preview interface
-- Storage of search engine source for each result
+- Basic result processing and normalization (occurs server-side after SERP execution).
+- Simple URL normalization (for consistency, not for deduplication).
+- Basic metadata extraction (domain, file type).
+- Display of processed results on the `Results Overview Page`, including filtering and sorting.
+- Result preview interface on the `Results Overview Page`.
+- Storage of search engine source for each result.
+- This page is accessed after the `Search Execution Status Page` indicates completion of SERP execution and initial processing.
 
 **Extension points for Phase 2:**
 - Multi-stage deduplication pipeline
@@ -527,185 +543,59 @@ For each feature, Phase 1 will implement a simplified version of the API that su
 ```typescript
 // src/server/serpExecution/actions.js
 import { executeSearchInBackground } from '../shared/services/googleSearchApi';
+import { HttpError } from 'wasp/server';
 
 export const executeSearchQuery = async ({ queryId, maxResults = 100 }, context) => {
   if (!context.user) {
-    throw new HttpError(401);
+    throw new HttpError(401, "Unauthorized");
   }
 
   try {
     // Fetch the query
     const query = await context.entities.SearchQuery.findUnique({
       where: { id: queryId },
-      include: { searchSession: true }
+      include: { searchSession: true } // Ensures searchSession is loaded to get sessionId
     });
     
     if (!query) {
       throw new HttpError(404, 'Query not found');
     }
     
+    if (query.searchSession.userId !== context.user.id) {
+      throw new HttpError(403, "User not authorized for this session's query");
+    }
+    
     // Create execution record
     const execution = await context.entities.SearchExecution.create({
       data: {
         queryId: query.id,
-        sessionId: query.sessionId,
-        status: 'running',
+        sessionId: query.sessionId, // Ensure query.sessionId is available and correct
+        status: 'running', // Initial status for the Search Execution Status Page
         startTime: new Date()
+        // resultCount will be updated upon completion
       }
     });
     
     // Execute search (single API only in Phase 1)
     // Use Google Search API via Serper
+    // This function should not block; it should run in the background.
+    // The client will poll or use other mechanisms to get status updates from SearchExecution entity.
     executeSearchInBackground(context.entities, execution.id, query, maxResults);
     
     return {
       executionId: execution.id,
       queryId: query.id,
-      status: 'running',
+      status: 'running', // Return initial status
       startTime: execution.startTime
     };
   } catch (error) {
     console.error('Error executing query:', error);
-    throw new HttpError(500, 'An unexpected error occurred');
+    // Potentially update SearchExecution to 'failed' here if synchronous error before backgrounding
+    throw new HttpError(500, 'An unexpected error occurred during search initiation');
   }
 };
 ```
 
 ```typescript
-// src/shared/services/googleSearchApi.js
-import axios from 'axios';
-
-export const executeSearchInBackground = async (entities, executionId, query, maxResults) => {
-  try {
-    // Simple API handler for Google Search only
-    const serperApiKey = process.env.SERPER_API_KEY;
-    const results = await searchGoogle(query.query, maxResults, serperApiKey);
-    
-    // Store results
-    for (const result of results) {
-      await entities.RawSearchResult.create({
-        data: {
-          queryId: query.id,
-          title: result.title,
-          url: result.link,
-          snippet: result.snippet,
-          rank: result.position,
-          searchEngine: 'google',
-          rawResponse: result
-        }
-      });
-    }
-    
-    // Update execution status
-    await entities.SearchExecution.update({
-      where: { id: executionId },
-      data: {
-        status: 'completed',
-        endTime: new Date(),
-        resultCount: results.length
-      }
-    });
-  } catch (error) {
-    console.error('Error in background execution:', error);
-    
-    // Update execution status
-    await entities.SearchExecution.update({
-      where: { id: executionId },
-      data: {
-        status: 'failed',
-        endTime: new Date(),
-        error: error.message
-      }
-    });
-  }
-};
-
-async function searchGoogle(query, maxResults, apiKey) {
-  const response = await axios.post('https://google.serper.dev/search', {
-    q: query,
-    num: maxResults
-  }, {
-    headers: {
-      'X-API-KEY': apiKey,
-      'Content-Type': 'application/json'
-    }
-  });
-  
-  return response.data.organic || [];
-}
-```
-
-## Deployment Strategy
-
-Phase 1, with its Wasp framework integration, will support multiple deployment options:
-
-1. **Development Environment**
-   - Use `wasp start` for local development
-   - Automatically starts both frontend and backend servers
-
-2. **Production Deployment Options**
-   - Docker containers with `wasp build` output
-   - Fly.io using Wasp's built-in deployment command: `wasp deploy fly`
-   - Standard Node.js hosting providers using the generated artifacts
-
-## Timeline and Milestones
-
-1. **Project Setup & Authentication** - 2 weeks
-   - Initialize Wasp project
-   - Implement authentication system
-   - Create user management
-
-2. **Search Strategy Builder** - 3 weeks
-   - Implement basic search strategy interface
-   - Create query generation logic
-
-3. **SERP Execution** - 2 weeks
-   - Integrate with Google Search API
-   - Implement search execution flow
-
-4. **Results Manager** - 3 weeks
-   - Build results processing pipeline
-   - Create results viewing interface
-
-5. **Review Results** - 2 weeks
-   - Implement basic review interface
-   - Create tagging and notes system
-
-6. **Reporting & Export** - 2 weeks
-   - Implement basic reporting
-   - Create export functionality
-
-7. **Testing & Refinement** - 2 weeks
-   - Comprehensive testing
-   - Bug fixes and refinements
-
-**Total Duration: 16 weeks (4 months)**
-
-## Success Criteria
-
-1. Researchers can create and execute search strategies
-2. Results can be processed, viewed, and tagged
-3. Basic reporting and export functionality is available
-4. Application is stable and performs reliably
-5. All extension points for Phase 2 are clearly defined
-
-## Risks and Mitigations
-
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| API rate limits | High | Medium | Implement rate limiting and retry mechanisms |
-| Database performance | Medium | Low | Monitor performance and optimize queries |
-| User adoption | High | Medium | Focus on UX and gather early feedback |
-| Development delays | Medium | Medium | Prioritize core features and establish clear MVP |
-| Wasp framework limitations | Medium | Low | Identify fallback options for specific features if needed |
-
-## Next Steps
-
-Upon successful completion of Phase 1, the team will prepare for Phase 2 implementation by:
-
-1. Gathering user feedback from Phase 1
-2. Refining the roadmap for Phase 2 features
-3. Identifying any necessary architecture adjustments
-4. Planning the development timeline for Phase 2
-
-The Phase 1 implementation provides a solid foundation that enables researchers to begin using the system while establishing clear extension points for the more sophisticated capabilities planned for Phase 2.
+// src/shared/services/googleSearchApi.js // Path might vary
+// ... existing code ...

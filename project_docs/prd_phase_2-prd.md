@@ -1,8 +1,10 @@
 # Thesis Grey: Phase 2 PRD
 
+**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/architecture/workflow.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
+
 ## Project Overview
 
-Thesis Grey is a specialised search application designed to facilitate the discovery and management of grey literature for clinical guideline development. Phase 2 builds upon the foundation established in Phase 1, enhancing the application with advanced features, improved user experience, and sophisticated data processing capabilities.
+Thesis Grey is a specialised search application designed to facilitate the discovery and management of grey literature for clinical guideline development. Phase 2 builds upon the foundation established in Phase 1, enhancing the application with advanced features, improved user experience, and sophisticated data processing capabilities. **Authenticated users first land on the `Review Manager Dashboard`, which lists all their review sessions. For Phase 2 review sessions, selecting a session from this dashboard navigates the user to the `Session Hub Page` for that specific session.** The `Session Hub Page` serves as a central dashboard for managing individual review sessions, offering role-dependent views and navigation to various session-specific functionalities.
 
 This PRD outlines the Phase 2 implementation, which continues to follow Vertical Slice Architecture (VSA) principles while expanding on the core functionality delivered in Phase 1. Phase 2 focuses on advanced features, multi-user collaboration, and sophisticated data processing.
 
@@ -177,6 +179,7 @@ thesis-grey/
 │   │   ├── auth/             # Enhanced authentication UI with roles
 │   │   ├── organization/     # New organization management
 │   │   ├── team/             # New team collaboration features
+│   │   ├── reviewManager/    # Review session listing and management (Review Manager Dashboard)
 │   │   ├── searchStrategy/   # Enhanced search strategy builder
 │   │   ├── serpExecution/    # Multi-API search execution
 │   │   ├── resultsManager/   # Advanced results processing
@@ -187,6 +190,7 @@ thesis-grey/
 │   │   ├── auth/             # Enhanced authentication with roles
 │   │   ├── organization/     # Organization management logic
 │   │   ├── team/             # Team collaboration logic
+│   │   ├── reviewManager/    # Server logic for review session management
 │   │   ├── searchStrategy/   # Advanced search strategy logic
 │   │   ├── serpExecution/    # Multi-API search execution
 │   │   ├── resultsManager/   # Advanced deduplication and processing
@@ -241,6 +245,7 @@ Phase 2 will continue to utilize the Wasp full-stack framework while introducing
 ```wasp
 app ThesisGrey {
   // ...
+  wasp: { version: "^0.16.0" }, // Ensure wasp version is noted
   auth: {
     userEntity: User,
     methods: {
@@ -254,7 +259,16 @@ app ThesisGrey {
       reviewer: {},
       admin: {}
     }
+    // The onAuthSucceededRedirectTo is generally handled by application logic
+    // or root route definition, leading to the Review Manager Dashboard.
   }
+}
+
+// Define ReviewManagerDashboard as the root for authenticated users
+route ReviewManagerDashboardRoute { path: "/", to: ReviewManagerDashboardPage } 
+page ReviewManagerDashboardPage {
+  authRequired: true,
+  component: import { ReviewManagerDashboardPage } from "@src/client/reviewManager/pages/ReviewManagerDashboardPage"
 }
 
 // Add admin routes
@@ -269,10 +283,10 @@ page AdminPage {
 **Phase 2 Enhancements:**
 - Multiple role types (Researcher, Reviewer, Admin)
 - Organization-based access control
-- Team collaboration features
+- Team collaboration features, **often managed and accessed via the `Session Hub Page` for a specific review session.**
 - Enhanced security features
 - OAuth integrations (Google)
-- Role-based authorization
+- Role-based authorization, **critical for controlling access to different sections of the `Session Hub Page` and specialized dashboards like `Deduplication Overview`.**
 
 ### 2. Search Strategy Builder (Enhancements)
 
@@ -313,10 +327,18 @@ action useTemplate {
 - MeSH term integration
 - Concept grouping with synonyms
 - Advanced boolean logic
+- **Executing searches transitions the user to the enhanced Phase 2 `Search Execution Status Page`.**
 
 ### 3. SERP Execution (Enhancements)
 
 ```wasp
+// Route for the Search Execution Status Page (enhanced for Phase 2)
+route SearchExecutionStatusRoute { path: "/session/:sessionId/status", to: SearchExecutionStatusPage }
+page SearchExecutionStatusPage {
+  authRequired: true,
+  component: import { SearchExecutionStatusPage } from "@src/client/serpExecution/pages/SearchExecutionStatusPage"
+}
+
 // Add scheduler page
 route SchedulerRoute { path: "/scheduler", to: SchedulerPage }
 page SchedulerPage {
@@ -350,7 +372,7 @@ query getSearchEngineStats {
 - Advanced rate limiting and quota management
 - Parallel query execution
 - Search execution scheduling
-- Enhanced progress visualization
+- **Enhanced progress visualization on the `Search Execution Status Page`, which in Phase 2 provides a consolidated view of both SERP query execution progress and subsequent results processing stages (e.g., normalization, metadata extraction, deduplication). Upon full completion, users are transitioned to the `Results Overview Page`.**
 - Robust error recovery
 - Result caching
 - Configurable search parameters per API
@@ -358,11 +380,25 @@ query getSearchEngineStats {
 ### 4. Results Manager (Enhancements)
 
 ```wasp
-// New advanced results page
-route AdvancedResultsRoute { path: "/advanced-results/:sessionId", to: AdvancedResultsPage }
-page AdvancedResultsPage {
+// Route for the main Results Overview Page (enhanced for Phase 2)
+route ResultsOverviewRoute { path: "/session/:sessionId/overview", to: ResultsOverviewPage }
+page ResultsOverviewPage {
   authRequired: true,
-  component: import { AdvancedResultsPage } from "@src/client/resultsManager/pages/AdvancedResultsPage"
+  component: import { ResultsOverviewPage } from "@src/client/resultsManager/pages/ResultsOverviewPage"
+}
+
+// New advanced results page is conceptually part of the overall Results Overview or specific admin views.
+// We add specific routes for Lead Reviewer dashboards:
+route DeduplicationOverviewRoute { path: "/session/:sessionId/deduplication", to: DeduplicationOverviewPage }
+page DeduplicationOverviewPage {
+  authRequired: true, // Further RBAC for Lead Reviewer done in component/operation
+  component: import { DeduplicationOverviewPage } from "@src/client/resultsManager/pages/DeduplicationOverviewPage"
+}
+
+route ProcessingStatusDashboardRoute { path: "/session/:sessionId/processing-status", to: ProcessingStatusDashboardPage }
+page ProcessingStatusDashboardPage {
+  authRequired: true, // Further RBAC for Lead Reviewer done in component/operation
+  component: import { ProcessingStatusDashboardPage } from "@src/client/resultsManager/pages/ProcessingStatusDashboardPage"
 }
 
 // New queries and actions
@@ -397,9 +433,10 @@ action extractFullText {
   2. Title similarity analysis
   3. Snippet similarity analysis
   4. Cross-reference between results from different search engines
-- Manual duplicate management interface
-- Full-text search within results
-- Advanced filtering and categorization
+- **Manual duplicate management interface, accessible via the `Deduplication Overview Page` for Lead Reviewers.**
+- **Monitoring of processing via the `Processing Status Dashboard` for Lead Reviewers.**
+- Full-text search within results on the `ResultsOverviewPage`.
+- Advanced filtering and categorization on the `ResultsOverviewPage`.
 - Bulk operations
 - Content similarity analysis
 
@@ -455,13 +492,14 @@ action createCustomTag {
 ### 6. Reporting & Export (Enhancements)
 
 ```wasp
-// New advanced reporting page
-route AdvancedReportingRoute { path: "/advanced-reporting/:sessionId", to: AdvancedReportingPage }
-page AdvancedReportingPage {
+// Main reporting page for a session
+route ReportingRoute { path: "/session/:sessionId/reporting", to: ReportingPage }
+page ReportingPage {
   authRequired: true,
-  component: import { AdvancedReportingPage } from "@src/client/reporting/pages/AdvancedReportingPage"
+  component: import { ReportingPage } from "@src/client/reporting/pages/ReportingPage"
 }
 
+// New advanced reporting page - could be the same ReportingPage with more features or a new one
 // New template management page
 route ReportTemplatesRoute { path: "/report-templates", to: ReportTemplatesPage }
 page ReportTemplatesPage {
@@ -500,6 +538,8 @@ action exportRisFormat {
 - Custom visualization tools
 
 ### 7. New Feature: Organization & Team Management
+
+This section describes broad organizational and team structures. **Users interact with specific review sessions via the `Session Hub Page` (for Phase 2 reviews), which is accessed by selecting a P2 review from the `Review Manager Dashboard`.** The `Session Hub Page` then leverages the team and role structures for that particular session.
 
 ```wasp
 // New organization management routes
@@ -553,15 +593,36 @@ action addTeamMember {
   fn: import { addTeamMember } from "@src/server/team/actions.js",
   entities: [TeamMembership]
 }
+
+// Route and Page for the Session Hub - accessed for a specific session
+route SessionHubRoute { path: "/session/:sessionId/hub", to: SessionHubPage }
+page SessionHubPage {
+  authRequired: true,
+  component: import { SessionHubPage } from "@src/client/reviewManager/pages/SessionHubPage" // Or a more central /shared/pages location
+}
 ```
 
-**Requirements:**
+**Requirements for Organization & Team Management:**
 - Organization creation and management
 - Team creation within organizations
 - Team member management
 - Role assignment within teams
 - Shared resources within teams
 - Team-level permissions
+
+**Requirements for Session Hub Page (Phase 2):**
+-   **Central Dashboard:** Acts as the main landing page for a selected review session, accessed from the `Review Manager Dashboard`.
+-   **Role-Based Views:** Dynamically displays content, navigation options, and available actions based on the user's role within that specific session (Lead Reviewer, Reviewer).
+-   **Navigation Hub:** Provides clear navigation to various parts of the review session:
+    *   Search Strategy (view/edit for Lead Reviewer, view for Reviewer)
+    *   Results Overview Page
+    *   Review Interface
+    *   Reporting
+    *   Team Management (for Lead Reviewer: manage members, roles for this session)
+    *   Session Settings (for Lead Reviewer: e.g., review parameters)
+    *   Links to `Deduplication Overview` and `Processing Status Dashboard` (for Lead Reviewer).
+-   **Session Status & Overview:** Displays key information about the session (e.g., progress, number of results, upcoming tasks).
+-   **Action Initiation:** Allows users to initiate relevant actions based on their role (e.g., Lead Reviewer re-executing searches, starting next review phase).
 
 ## API Implementation Examples
 

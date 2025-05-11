@@ -1,5 +1,7 @@
 # Feature Implementation Details
 
+**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/architecture/workflow.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
+
 This document provides an overview of how each core feature of Thesis Grey is implemented using the Wasp framework.
 
 ## 1. Authentication Feature
@@ -67,10 +69,10 @@ export function ProfilePage() {
 ```
 
 ### Authorization in Operations
-Authorization is enforced in every operation:
+Authorization is enforced in every operation. In Phase 2, this becomes more granular, often checking a user's specific role within a review session (e.g., 'Lead Reviewer', 'Reviewer') to control access to sensitive operations or administrative UIs.
 
 ```typescript
-// Example from a query
+// Example from a query, demonstrating conceptual RBAC check for Phase 2
 export const getSearchSession = async ({ id }, context) => {
   if (!context.user) {
     throw new HttpError(401, "Unauthorized");
@@ -78,12 +80,24 @@ export const getSearchSession = async ({ id }, context) => {
   
   const session = await context.entities.SearchSession.findUnique({
     where: { id }
+    // In Phase 2, might also include fetching related UserSessionRole entity
+    // to determine the user's role for this specific session.
   });
   
-  if (session.userId !== context.user.id) {
+  if (!session) { throw new HttpError(404, "Session not found"); }
+
+  // Example of combined ownership (P1) and role-based access check (P2 concept)
+  // Actual RBAC logic will depend on how roles are stored and retrieved.
+  const canAccess = (session.userId === context.user.id) || 
+                  (context.user.isAdmin) || // Example admin override
+                  (isUserMemberOfSessionTeam(context.user, session.id, context.entities)); // Placeholder for P2 team/role check
+
+  if (!canAccess) {
     throw new HttpError(403, "You don't have access to this session");
   }
   
+  // Further checks for specific actions within the session would verify specific roles,
+  // e.g., if trying to edit settings, check if user is 'Lead Reviewer' for this session.
   return session;
 };
 ```
@@ -147,11 +161,41 @@ action updateSearchQuery {
    };
    ```
 
+## 2.5. Review Session Hub (Phase 2)
+
+The `Session Hub Page` becomes a central point for managing an individual review session in Phase 2. It provides role-based navigation and access to different facets of the review.
+
+### Configuration in `main.wasp` (Conceptual)
+```wasp
+// In main.wasp, under Review Manager or a general routing section (Phase 2)
+route SessionHubRoute { path: "/session/:sessionId/hub", to: SessionHubPage }
+page SessionHubPage {
+  authRequired: true,
+  component: import { SessionHubPage } from "@src/client/reviewManager/pages/SessionHubPage" // Or a dedicated sessionHub feature
+}
+```
+
+### Implementation Highlights
+
+1.  **Centralized Navigation:** Provides links to Strategy, Results, Team Management, Settings, Reports, and Admin Dashboards (for Lead Reviewers).
+2.  **Role-Based Views:** Content and actions are tailored based on the user's role (Lead Reviewer vs. Reviewer) for that session.
+3.  **Data Aggregation:** Uses Wasp queries to fetch session details, team information, and review settings.
+    ```typescript
+    // Client-side conceptual logic for SessionHubPage:
+    // This page uses Wasp queries (e.g., getSessionHubDetails) to fetch comprehensive 
+    // session data and the current user's role for that specific session. 
+    // It then conditionally renders navigation links and components.
+    // Example: 
+    // const { data: sessionDetails } = useQuery(getSessionHubDetails, { sessionId });
+    // const { data: user } = useAuth();
+    // // Logic to determine user's role for this session (e.g., from sessionDetails or a separate query).
+    ```
+
 ## 3. SERP Execution
 
-The SERP execution feature handles the running of search queries against external APIs.
+The SERP execution feature handles the running of search queries against external APIs and displaying their progress.
 
-### Configuration in main.wasp
+### Configuration in `main.wasp`
 ```wasp
 query getSearchQueries {
   fn: import { getSearchQueries } from "@src/server/serpExecution/queries.js",
@@ -167,14 +211,17 @@ action executeSearchQuery {
   fn: import { executeSearchQuery } from "@src/server/serpExecution/actions.js",
   entities: [SearchQuery, SearchExecution, RawSearchResult]
 }
+
+route SearchExecutionStatusRoute { path: "/session/:sessionId/status", to: SearchExecutionStatusPage }
+page SearchExecutionStatusPage {
+  authRequired: true,
+  component: import { SearchExecutionStatusPage } from "@src/client/serpExecution/pages/SearchExecutionStatusPage"
+}
 ```
 
 ### Implementation Highlights
 
-1. **Query Execution**
-   - Integration with Google Search API via Serper
-   - Asynchronous execution to handle long-running operations
-   - Progress tracking
+1. **Query Execution:** Integration with Google Search API via Serper. Asynchronous execution. **The status of these operations is displayed on the dedicated `Search Execution Status Page`. In Phase 1, this page shows SERP query progress. In Phase 2, it's enhanced to show a consolidated view of both SERP query execution and subsequent results processing (with results processing status provided by the `Results Manager` feature), with the UI for this consolidated view managed by the `SERP Execution` feature.**
 
 2. **Error Handling**
    - Robust error handling for API failures
@@ -242,32 +289,28 @@ action executeSearchQuery {
 
 ## 4. Results Manager
 
-The results manager processes raw search results into normalized entries and handles duplicate detection.
+The results manager processes raw search results into normalized entries and handles duplicate detection. **In Phase 2, it also provides specialized UIs for Lead Reviewers for advanced control and monitoring.**
 
-### Configuration in main.wasp
+### Configuration in `main.wasp` (Phase 2 Additions)
 ```wasp
-query getRawResults {
-  fn: import { getRawResults } from "@src/server/resultsManager/queries.js",
-  entities: [RawSearchResult]
+// In main.wasp, under Results Manager or a general routing section (Phase 2)
+// These pages are typically for Lead Reviewers and access is further controlled by RBAC.
+route DeduplicationOverviewRoute { path: "/session/:sessionId/deduplication", to: DeduplicationOverviewPage }
+page DeduplicationOverviewPage {
+  authRequired: true, 
+  component: import { DeduplicationOverviewPage } from "@src/client/resultsManager/pages/DeduplicationOverviewPage"
 }
 
-query getProcessedResults {
-  fn: import { getProcessedResults } from "@src/server/resultsManager/queries.js",
-  entities: [ProcessedResult]
-}
-
-action processSessionResults {
-  fn: import { processSessionResults } from "@src/server/resultsManager/actions.js",
-  entities: [RawSearchResult, ProcessedResult, DuplicateRelationship]
+route ProcessingStatusDashboardRoute { path: "/session/:sessionId/processing-status", to: ProcessingStatusDashboardPage }
+page ProcessingStatusDashboardPage {
+  authRequired: true, 
+  component: import { ProcessingStatusDashboardPage } from "@src/client/resultsManager/pages/ProcessingStatusDashboardPage"
 }
 ```
 
 ### Implementation Highlights
 
-1. **Result Processing**
-   - URL normalization for consistency
-   - Metadata extraction (domain, file type)
-   - Basic duplicate detection based on normalized URLs
+1. **Result Processing:** URL normalization, metadata extraction. Basic duplicate detection. **In Phase 2, specialized UIs like the `Deduplication Overview` (for managing automated duplicate sets) and `Processing Status Dashboard` (for detailed logs/configuration) are available to Lead Reviewers.**
 
 2. **Client Implementation**
    ```tsx
@@ -364,6 +407,7 @@ action createNote {
    - Create custom tags with colors
    - Apply tags to search results
    - Filter results by tag
+   - **In Phase 2, Lead Reviewers will have controls to resolve tagging conflicts if multiple reviewers disagree.**
 
 2. **Note Taking**
    - Add notes to search results
@@ -389,6 +433,10 @@ action createNote {
        console.error("Failed to assign tag:", error);
      }
    };
+
+   // In Phase 2, the Results Overview Page will also provide a navigation 
+   // point for Lead Reviewers to access the `Deduplication Overview` page 
+   // (part of the `Results Manager` feature).
    ```
 
 ## 6. Reporting & Export
