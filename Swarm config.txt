@@ -1,0 +1,8 @@
+Swarm config
+
+Google:
+swarm-939@gen-lang-client-0031685232.iam.gserviceaccount.com
+AIzaSyAj-zeOqugH_bC4mELdsTjaXvdpo5l3GuA
+
+Perplexity
+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

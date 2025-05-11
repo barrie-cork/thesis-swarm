@@ -1,0 +1,109 @@
+Test 1: User Registration Flow
+1a. Valid Signup:
+Go to http://localhost:3000/signup.
+Enter a new, valid email address (e.g., test_researcher@example.com).
+Enter a strong password (at least 8 characters).
+Select "Researcher" from the Role dropdown.
+Click "Sign up".
+Expected: Success message ("You've signed up successfully! Check your email..."). Check the console where wasp start is running for the verification email log.
+1b. Invalid Email Format:
+Go to http://localhost:3000/signup.
+Enter an invalid email (e.g., invalid-email).
+Enter a password.
+Select a role.
+Click "Sign up".
+Expected: An error message indicating an invalid email format.
+1c. Short Password:
+Go to http://localhost:3000/signup.
+Enter a new, valid email address.
+Enter a short password (e.g., pass).
+Select a role.
+Click "Sign up".
+Expected: An error message about the password length.
+1d. Existing Email:
+Go to http://localhost:3000/signup.
+Enter the email address you just successfully signed up with (e.g., test_researcher@example.com).
+Enter a password.
+Select a role.
+Click "Sign up".
+Expected: An error message indicating the email is already in use.
+1e. Signup as Admin:
+Go to http://localhost:3000/signup.
+Enter a new, valid email address (e.g., test_admin@example.com).
+Enter a strong password.
+Select "Admin" from the Role dropdown.
+Click "Sign up".
+Expected: Success message. Check console for verification email log.
+Test 2: Login Functionality
+2a. Verify Email:
+Find the verification link for one of your test accounts (e.g., test_researcher@example.com) in the wasp start console logs.
+Open the link in your browser.
+Expected: You should see the email verification page, and it should indicate success.
+2b. Valid Login:
+Go to http://localhost:3000/login.
+Enter the verified email (e.g., test_researcher@example.com).
+Enter the correct password used during signup.
+Click "Log in".
+Expected: Successful login, redirection to the main page (/, SearchStrategyPage).
+2c. Invalid Password:
+Log out (if logged in).
+Go to http://localhost:3000/login.
+Enter the verified email (e.g., test_researcher@example.com).
+Enter an incorrect password.
+Click "Log in".
+Expected: "Invalid credentials" error message.
+2d. Non-Existent Email:
+Go to http://localhost:3000/login.
+Enter an email address that does not exist (e.g., nouser@example.com).
+Enter any password.
+Click "Log in".
+Expected: "Invalid credentials" error message.
+2e. Unverified Email Login:
+(Requires a new signup without verification) Sign up with a new email (e.g., unverified@example.com) but do not click the verification link from the console.
+Go to http://localhost:3000/login.
+Enter the unverified email (unverified@example.com).
+Enter the correct password.
+Click "Log in".
+Expected: Login should fail. Wasp's default for email auth usually requires verification unless specifically configured otherwise (and we removed allowUnverifiedLogin: true). You should likely see an "Invalid credentials" or similar error.
+Test 3: JWT Token Generation/Validation
+Implicitly tested by Test 4 and Test 5. If you can log in and access protected routes, JWTs are working.
+Test 4: Profile Page Access
+4a. Logged Out:
+Ensure you are logged out.
+Navigate directly to http://localhost:3000/profile.
+Expected: Redirected to /login.
+4b. Logged In:
+Log in with a verified account.
+Navigate to http://localhost:3000/profile.
+Expected: Profile page displays correctly with user information (Email, Role). Check if the correct role (Researcher or Admin) is shown.
+Test 5: Protected Route Redirection
+Ensure you are logged out.
+Try navigating directly to:
+http://localhost:3000/ (SearchStrategyPage)
+http://localhost:3000/results (ResultsManagerRoute - Note: This path might need a session ID)
+http://localhost:3000/review (ReviewRoute - Note: This path might need a session ID)
+Expected: For each attempt, you should be redirected to /login.
+Test 6: Basic Role-Based Permissions
+6a. Researcher Restrictions:
+Log in as the "Researcher" user (e.g., test_researcher@example.com).
+Try to perform an action restricted to "Lead Reviewer" or "Admin". The most readily available one we implemented is executing a search.
+Go to the Search Strategy page (/).
+Create a Search Session if you haven't already.
+Add a Search Query to that session.
+Navigate to the Search Execution page (you might need to figure out the URL or add a button).
+Attempt to execute the search query.
+Expected: The executeSearchQuery action should fail with a 403 Forbidden error (check browser dev tools network tab or server console logs) because the "Researcher" role doesn't have permission according to our requireAnyRole(['Lead Reviewer', 'Admin'], ...) check in src/server/serpExecution/actions.js.
+6b. Admin Permissions:
+Log in as the "Admin" user (e.g., test_admin@example.com).
+Repeat the steps in 6a (create session/query if needed, execute search).
+Expected: The search execution should start successfully (status becomes 'running').
+6c. Implicit Lead Reviewer Promotion:
+Log in as the "Researcher" user (test_researcher@example.com).
+Go to the Search Strategy page (/).
+Create a new Search Session.
+Check the console logs where wasp start is running.
+Expected: You should see the log message: User <user_id> promoted to Lead Reviewer.
+Go to the Profile page (/profile).
+Expected: The role displayed should now be "Lead Reviewer".
+Attempt to execute a search query again (as in step 6a).
+Expected: Search execution should now succeed because the user is now a Lead Reviewer.

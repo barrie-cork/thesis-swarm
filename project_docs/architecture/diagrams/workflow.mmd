@@ -1,0 +1,95 @@
+graph TD
+    %% ====== Authentication ======
+    A0[User Starts] --> A1{User Authenticated?};
+    A1 -- No --> A2[Authentication Page (Login/Signup)];
+    A2 -- Authentication Success --> A3[Review Manager Dashboard];
+    A1 -- Yes --> A3;
+
+    %% ====== Review Manager Dashboard Actions ======
+    A3 -- Create New Review --> B1_SSB[Search Strategy Builder];
+
+    A3 -- Select P1 Review (Status: Draft) --> B1_SSB;
+    A3 -- Select P1 Review (Status: Executing) --> C1_SESP[P1: Search Execution Status Page];
+    A3 -- Select P1 Review (Status: Ready/Completed) --> D1_ROP[P1: Results Overview Page];
+
+    A3 -- Select P2 Review --> F2_SHP[P2: Session Hub Page];
+
+    %% ====== Phase 1 Workflow ======
+    subgraph Phase 1: Search Strategy & Execution
+        B1_SSB -- Define/Edit Strategy --> B1_SSB;
+        B1_SSB -- Click 'Execute Searches' --> C1_SESP;
+        C1_SESP -- SERP Queries Executing... --> C1_SESP;
+        C1_SESP -- SERP Execution Complete --> D1_ROP;
+    end
+
+    subgraph Phase 1: Results Review & Reporting
+        D1_ROP -- Review & Tag Results --> D1_ROP;
+        D1_ROP -- Go to Report --> E1_RP[P1: Reporting Page];
+    end
+
+    %% ====== Phase 2 Workflow (via Session Hub) ======
+    subgraph Phase 2: Session Hub & Role-Based Navigation
+        F2_SHP --> F2_Role{User Role?};
+        F2_Role -- Lead Reviewer --> F2_SHP_LR[LR View: Strategy, Results, Team, Settings, Admin, Report];
+        F2_Role -- Reviewer --> F2_SHP_R[Reviewer View: Strategy (View), Results, Team (View), Settings (View), Report];
+    end
+
+    %% Phase 2: Search Strategy (Lead Reviewer)
+    subgraph Phase 2: Search Strategy & Execution (Lead Reviewer)
+        F2_SHP_LR -- Edit/Re-Execute Strategy --> I2_SSB_LR[P2: Search Strategy Builder (LR)];
+        I2_SSB_LR -- Define/Edit Strategy --> I2_SSB_LR;
+        I2_SSB_LR -- Click 'Execute Searches' --> J2_SESP[P2: Search Execution Status Page (Consolidated SERP & Results Processing)];
+        J2_SESP -- Executing & Processing... --> J2_SESP;
+        J2_SESP -- All Execution & Processing Complete --> K2_ROP[P2: Results Overview Page];
+    end
+
+    %% Phase 2: Search Strategy (Reviewer)
+    subgraph Phase 2: Search Strategy (Reviewer)
+        F2_SHP_R -- View Strategy --> I2_SSB_R[P2: Search Strategy Builder (Reviewer - View Only)];
+    end
+
+    %% Phase 2: Results Overview & Admin (Lead Reviewer)
+    subgraph Phase 2: Results Review & Admin
+        F2_SHP_LR -- Go to Results --> K2_ROP;
+        F2_SHP_R -- Go to Results --> K2_ROP;
+
+        K2_ROP -- Review & Tag Results --> K2_ROP;
+        K2_ROP -- LR: Resolve Conflicts --> K2_ROP;
+        K2_ROP -- LR: Go to Deduplication Admin --> L2_DOP[P2: Deduplication Overview Page (LR - Results Manager)];
+        L2_DOP -- Manage Duplicates --> L2_DOP;
+    end
+
+    %% Phase 2: Admin Dashboards (Lead Reviewer from Session Hub)
+    subgraph Phase 2: Admin Dashboards (Lead Reviewer)
+        F2_SHP_LR -- View Processing Status Dashboard --> N2_PSD[P2: Processing Status Dashboard (LR - Results Manager)];
+        %% Deduplication Overview (L2_DOP) is also accessed from Session Hub via Results Overview or directly.
+    end
+
+    %% Phase 2: Reporting
+    subgraph Phase 2: Reporting
+        F2_SHP_LR -- Go to Report --> M2_RP[P2: Reporting Page];
+        F2_SHP_R -- Go to Report --> M2_RP;
+    end
+
+    %% Styling
+    classDef page fill:#e6f2ff,stroke:#007bff,stroke-width:2px;
+    classDef decision fill:#fff3cd,stroke:#ffc107,stroke-width:2px;
+    classDef p1_feature fill:#d4edda,stroke:#28a745,stroke-width:1px;
+    classDef p2_feature fill:#f8d7da,stroke:#dc3545,stroke-width:1px;
+    classDef p2_admin fill:#e2d9f3,stroke:#6f42c1,stroke-width:1px;
+
+    class A2,A3,B1_SSB,C1_SESP,D1_ROP,E1_RP,F2_SHP,I2_SSB_LR,J2_SESP,K2_ROP,M2_RP,I2_SSB_R page;
+    class A1,F2_Role decision;
+    class L2_DOP,N2_PSD p2_admin;
+
+    class C1_SESP p1_feature;
+    class D1_ROP p1_feature;
+    class E1_RP p1_feature;
+
+    class F2_SHP_LR p2_feature;
+    class F2_SHP_R p2_feature;
+    class I2_SSB_LR p2_feature;
+    class J2_SESP p2_feature;
+    class K2_ROP p2_feature;
+    class M2_RP p2_feature;
+    class I2_SSB_R p2_feature;
