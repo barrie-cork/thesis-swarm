@@ -1,56 +1,59 @@
 # Thesis Grey
 
-A specialized search application designed to facilitate the discovery and management of grey literature for clinical guideline development.
+A specialized application for managing grey literature in clinical guideline development. Built with Wasp, a declarative DSL that integrates React, Node.js, and Prisma.
 
 ## Project Overview
 
-Thesis Grey helps researchers create and execute systematic search strategies, process and review search results, and support PRISMA-compliant workflows for literature reviews.
+Thesis Grey helps researchers streamline the workflow for literature search, review, and reporting in the context of clinical guideline development. It leverages the Wasp framework to provide a robust and maintainable application structure.
 
-The application follows a phased implementation approach:
-- **Phase 1**: Core functionality with a streamlined feature set
-- **Phase 2**: Advanced capabilities building on the Phase 1 foundation
+The application focuses on:
+- Efficient search strategy creation and management.
+- Execution of searches via external APIs (e.g., Google Search API via Serper).
+- Processing, deduplication, and review of search results.
+- Generation of reports and statistics, supporting PRISMA-compliant workflows.
 
-## Key Features
+## Key Features (Organized by Verticals)
 
-- Search strategy building with PIC framework support
-- Search execution via Google Search API 
-- Results processing and management
-- Review interface with tagging and notes
-- PRISMA-compliant reporting and exports
+- **Auth**: User authentication and profile management.
+- **Search Strategy**: Building and managing search queries and sessions.
+- **SERP Execution**: Executing searches via external APIs and managing results.
+- **Results Manager**: Processing and normalizing search results, including duplicate detection.
+- **Review Results**: Tagging, annotating, and reviewing processed results.
+- **Reporting**: Generating PRISMA flow diagrams, statistics, and data exports.
 
 ## Tech Stack
 
+- **Framework**: Wasp (full-stack, declarative DSL)
 - **Frontend**: React, TypeScript, TailwindCSS
-- **Backend**: Node.js, Express, Prisma ORM
+- **Backend**: Node.js (via Wasp), Prisma ORM (via Wasp)
 - **Database**: PostgreSQL
-- **Framework**: Wasp (full-stack framework)
-- **APIs**: Google Search API via Serper
+- **APIs**: Google Search API (via Serper)
 
 ## Architecture
 
-Thesis Grey follows a Vertical Slice Architecture (VSA) while leveraging Wasp's built-in capabilities:
+Thesis Grey is built using the Wasp framework and follows a **Vertical Slice Architecture**.
+- The `main.wasp` file in the root directory is the central configuration, defining entities, routes, pages, queries, and actions.
+- Custom code (React components, server logic) resides in feature-specific directories under `src/client/` and `src/server/`.
+- Each feature vertical (e.g., `auth`, `searchStrategy`) typically includes:
+  - `pages/`: Page components
+  - `components/`: UI components
+  - `hooks/`: Custom React hooks
+  - `utils/`: Utility functions
+  - `types.ts`: TypeScript definitions
+  - Server-side `queries.js` and `actions.js` for data operations.
 
-### Core Layers
-
-- **Domain Layer**: Business entities defined through Prisma schema
-- **Application Layer**: Use cases implemented via Wasp actions and queries
-- **Infrastructure Layer**: Minimized through Wasp's built-in capabilities:
-  - Authentication via Wasp's auth system
-  - Database access via Wasp's Prisma integration
-  - API layer via Wasp operations
-- **Presentation Layer**: React components with Wasp's routing and hooks
-
-### Cross-cutting Concerns
-
-- **Error Handling**: Wasp's HttpError for operation failures
-- **Authentication**: Wasp's built-in auth system with JWT
-- **Security**: Route protection via Wasp's authRequired property
+This structure leverages Wasp's capabilities for authentication, database access (Prisma), and client-server communication (Wasp operations), minimizing boilerplate.
 
 ## Documentation
 
-Detailed documentation can be found in the `project_docs` directory:
-- [Phase 1 PRD](project_docs/prd_phase_1.md)
-- [Phase 2 PRD](project_docs/prd_phase_2-prd.md)
+Detailed documentation about the project's architecture, features, and conventions can be found in the `project_docs/` directory, particularly under `project_docs/architecture/`.
+
+Key documents include:
+- Overview of Thesis Grey and Wasp
+- Project Conventions and Rules
+- Database, Entities, and Operations
+- Authentication Flow
+- Frontend and Styling Guidelines
 
 ## Development
 
