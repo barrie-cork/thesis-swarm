@@ -19,6 +19,13 @@ model User {
   updatedAt          DateTime          @updatedAt
   searchSessions     SearchSession[]
   reviewAssignments  ReviewAssignment[]
+  
+  // Phase 2 fields
+  role               String?
+  organizationId     String?
+  // Will add relations in Phase 2:
+  // organization      Organization?     @relation(fields: [organizationId], references: [id])
+  // teams             TeamMembership[]
 }
 
 model SearchSession {
@@ -28,11 +35,20 @@ model SearchSession {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   userId            String
-  user              User              @relation(fields: [userId], references: [id])
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   searchQueries     SearchQuery[]
   searchExecutions  SearchExecution[]
   processedResults  ProcessedResult[]
   reviewTags        ReviewTag[]
+  
+  // Phase 2 fields
+  teamId            String?
+  isTemplate        Boolean?          @default(false)
+  parentTemplateId  String?
+  // Will add relations in Phase 2:
+  // team              Team?             @relation(fields: [teamId], references: [id])
+  // parentTemplate    SearchSession?    @relation("SessionTemplate", fields: [parentTemplateId], references: [id])
+  // derivedSessions   SearchSession[]   @relation("SessionTemplate")
 }
 
 model SearchQuery {
@@ -42,9 +58,13 @@ model SearchQuery {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   sessionId         String
-  searchSession     SearchSession     @relation(fields: [sessionId], references: [id])
+  searchSession     SearchSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   searchExecutions  SearchExecution[]
   rawSearchResults  RawSearchResult[]
+  
+  // Phase 2 fields
+  queryType         String?           // e.g., "boolean", "natural", "pico"
+  structuredData    Json?             // For storing structured query data (PICO elements, etc.)
 }
 
 model SearchExecution {
@@ -56,8 +76,12 @@ model SearchExecution {
   error             String?
   queryId           String
   sessionId         String
-  searchQuery       SearchQuery       @relation(fields: [queryId], references: [id])
-  searchSession     SearchSession     @relation(fields: [sessionId], references: [id])
+  searchQuery       SearchQuery       @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  searchSession     SearchSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Phase 2 fields
+  executedBy        String?           // User ID who executed the search
+  searchParams      Json?             // Additional search parameters
 }
 
 model RawSearchResult {
@@ -69,8 +93,12 @@ model RawSearchResult {
   rank              Int
   searchEngine      String
   rawResponse       Json
-  searchQuery       SearchQuery       @relation(fields: [queryId], references: [id])
+  searchQuery       SearchQuery       @relation(fields: [queryId], references: [id], onDelete: Cascade)
   processedResult   ProcessedResult?
+  
+  // Phase 2 fields
+  fetchStatus       String?           // For tracking content fetching status
+  fullTextPath      String?           // Path to stored full text content
 }
 
 model ProcessedResult {
@@ -81,12 +109,17 @@ model ProcessedResult {
   url               String
   snippet           String?
   metadata          Json
-  rawSearchResult   RawSearchResult   @relation(fields: [rawResultId], references: [id])
-  searchSession     SearchSession     @relation(fields: [sessionId], references: [id])
+  rawSearchResult   RawSearchResult   @relation(fields: [rawResultId], references: [id], onDelete: Cascade)
+  searchSession     SearchSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   reviewTags        ReviewTagAssignment[]
   notes             Note[]
   duplicateOf       DuplicateRelationship[] @relation("primaryResult")
   duplicates        DuplicateRelationship[] @relation("duplicateResult")
+  
+  // Phase 2 fields
+  citationData      Json?             // Structured citation data
+  qualityScore      Float?            // Automated quality assessment
+  evidenceLevel     String?           // Evidence hierarchy classification
 }
 
 model DuplicateRelationship {
@@ -95,8 +128,12 @@ model DuplicateRelationship {
   duplicateResultId String
   similarityScore   Float
   duplicateType     String
-  primaryResult     ProcessedResult   @relation("primaryResult", fields: [primaryResultId], references: [id])
-  duplicateResult   ProcessedResult   @relation("duplicateResult", fields: [duplicateResultId], references: [id])
+  primaryResult     ProcessedResult   @relation("primaryResult", fields: [primaryResultId], references: [id], onDelete: Cascade)
+  duplicateResult   ProcessedResult   @relation("duplicateResult", fields: [duplicateResultId], references: [id], onDelete: Cascade)
+  
+  // Phase 2 fields
+  verifiedBy        String?           // User ID who verified the duplicate
+  verifiedAt        DateTime?         // When the duplicate was verified
 }
 
 model ReviewTag {
@@ -104,22 +141,40 @@ model ReviewTag {
   name              String
   color             String
   sessionId         String
-  searchSession     SearchSession     @relation(fields: [sessionId], references: [id])
+  searchSession     SearchSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   assignments       ReviewTagAssignment[]
+  
+  // Phase 2 fields
+  tagType           String?           // e.g., "inclusion", "exclusion", "topic"
+  description       String?           // Tag description
+  isSystemTag       Boolean?          @default(false)
 }
 
 model ReviewTagAssignment {
   id                String            @id @default(uuid())
   tagId             String
   resultId          String
-  tag               ReviewTag         @relation(fields: [tagId], references: [id])
-  result            ProcessedResult   @relation(fields: [resultId], references: [id])
+  tag               ReviewTag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  result            ProcessedResult   @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  
+  // Phase 2 fields
+  assignedBy        String?           // User ID who assigned the tag
+  assignedAt        DateTime?         @default(now())
+  confidence        Float?            // Reviewer confidence in this assignment
 }
 
 model ReviewAssignment {
   id                String            @id @default(uuid())
   userId            String
-  user              User              @relation(fields: [userId], references: [id])
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Phase 2 fields
+  sessionId         String?           // Link to search session
+  // searchSession     SearchSession?    @relation(fields: [sessionId], references: [id]) // Assuming this relation will be added
+  assignedBy        String?           // User ID who created the assignment
+  startDate         DateTime?         // When review should start
+  dueDate           DateTime?         // When review should be completed
+  status            String?           // e.g., "pending", "in_progress", "completed"
 }
 
 model Note {
@@ -128,5 +183,43 @@ model Note {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   resultId          String
-  result            ProcessedResult   @relation(fields: [resultId], references: [id])
-} 
+  result            ProcessedResult   @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  
+  // Phase 2 fields
+  authorId          String?           // User who created the note
+  // author            User?             @relation(fields: [authorId], references: [id]) // Assuming this relation
+  visibility        String?           @default("private") // "private", "team", "public"
+}
+
+// Phase 2 entities (can be uncommented and filled in schema.prisma when ready)
+// model Organization {
+//   id                String            @id @default(uuid())
+//   name              String
+//   createdAt         DateTime          @default(now())
+//   updatedAt         DateTime          @updatedAt
+//   users             User[]
+//   teams             Team[]
+// }
+//
+// model Team {
+//   id                String            @id @default(uuid())
+//   name              String
+//   organizationId    String
+//   organization      Organization      @relation(fields: [organizationId], references: [id])
+//   createdAt         DateTime          @default(now())
+//   updatedAt         DateTime          @updatedAt
+//   members           TeamMembership[]
+//   searchSessions    SearchSession[]
+// }
+//
+// model TeamMembership {
+//   id                String            @id @default(uuid())
+//   userId            String
+//   teamId            String
+//   role              String            // "member", "admin"
+//   user              User              @relation(fields: [userId], references: [id])
+//   team              Team              @relation(fields: [teamId], references: [id])
+//   createdAt         DateTime          @default(now())
+//   updatedAt         DateTime          @updatedAt
+//   @@unique([userId, teamId])
+// } 
