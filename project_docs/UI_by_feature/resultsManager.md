@@ -4,6 +4,42 @@
 
 The Results Manager feature is a critical backend-driven system responsible for processing, normalising, and enhancing raw search results before they become available for review. In Phase 1, it will operate primarily as a background service with no dedicated UI, whilst Phase 2 will introduce specialised interfaces for monitoring and managing the results processing pipeline, with particular focus on deduplication management.
 
+## Core Requirements
+
+This section outlines the core functional and technical requirements for the Results Manager feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
+
+### Phase 1 Requirements
+
+#### Functional Requirements
+- **REQ-FR-RM-1:** System must process and normalize search results (primarily as a background server-side operation).
+- **REQ-FR-RM-2:** System must implement basic URL normalization for consistency (e.g., removing tracking parameters, standardizing protocols).
+- **REQ-FR-RM-3:** System must extract basic metadata (domain, file type from URL patterns/MIME types).
+- **REQ-FR-RM-4:** Processed results, when available, must support filtering and sorting on the `Results Overview Page`.
+- **REQ-FR-RM-5:** System must provide a result preview interface (typically on the `Results Overview Page` after processing is complete).
+- **REQ-FR-RM-6:** System must store the search engine source for each result.
+- **REQ-FR-RM-7:** System must provide user notifications (e.g., within Search Execution Status or global notifications) regarding processing status (progress, completion, errors).
+
+#### Technical Requirements
+- **REQ-TR-RM-1:** Result processing logic must be implemented as a modular, asynchronous pipeline.
+- **REQ-TR-RM-2:** Processed results must be stored efficiently in the `ProcessedResult` entity, linked to `RawSearchResult`.
+- **REQ-TR-RM-3:** Basic deduplication (e.g., based on exact URL match after normalization) should occur during processing to create initial `DuplicateRelationship` records if applicable.
+
+### Phase 2 Requirements (Enhancements)
+
+#### Functional Requirements
+- **REQ-FR-RM-P2-1:** System must implement an advanced, multi-stage deduplication pipeline (URL similarity, title similarity, snippet similarity, cross-engine referencing).
+- **REQ-FR-RM-P2-2:** System must provide a dedicated `Deduplication Overview Page` and `Duplicate Resolution Interface` for Lead Reviewers to manage and manually resolve duplicate clusters.
+- **REQ-FR-RM-P2-3:** System must provide a `Processing Status Dashboard` for Lead Reviewers to monitor the real-time status of processing and deduplication pipelines.
+- **REQ-FR-RM-P2-4:** System must support advanced metadata extraction (e.g., authors, publication dates, affiliations) and store it in `ProcessedResult.enhancedMetadata`.
+- **REQ-FR-RM-P2-5:** System must allow configuration of the processing pipeline (e.g., intensity, enabling/disabling specific steps) via the `Processing Configuration Panel` for authorized users.
+- **REQ-FR-RM-P2-6:** System should support full-text extraction for certain document types and make it searchable.
+
+#### Technical Requirements
+- **REQ-TR-RM-P2-1:** The deduplication pipeline must be configurable and handle large volumes of results efficiently.
+- **REQ-TR-RM-P2-2:** The `Deduplication Management Interface` must allow for efficient review and resolution of potential duplicates, updating `DuplicateRelationship` entities.
+- **REQ-TR-RM-P2-3:** Advanced metadata extraction may involve NLP libraries or external services and should be robust.
+- **REQ-TR-RM-P2-4:** All processing stages must be logged for audit and debugging purposes.
+
 ## Phase 1 Implementation
 
 ### 1. Results Manager Core Functionality

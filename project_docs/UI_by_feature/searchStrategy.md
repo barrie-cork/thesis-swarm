@@ -4,6 +4,45 @@
 
 The Search Strategy Builder feature enables researchers to create, refine, and execute structured search strategies for systematic reviews. This implementation plan outlines a comprehensive approach for building an intuitive, powerful interface that guides users through the process of constructing effective search queries using the PIC (Population, Interest, Context) framework whilst providing immediate feedback and query previews.
 
+## Core Requirements
+
+This section outlines the core functional and technical requirements for the Search Strategy Builder feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
+
+### Phase 1 Requirements
+
+#### Functional Requirements
+- **REQ-FR-SSB-1:** System must allow users to create and manage search sessions, including naming and describing them.
+- **REQ-FR-SSB-2:** System must support basic concept grouping using the PIC framework (Population, Interest, Context) where users can input terms for each category.
+- **REQ-FR-SSB-3:** System must allow domain selection/URL filtering for searches (e.g., restricting search to specific websites).
+- **REQ-FR-SSB-4:** System must support basic file type filtering (e.g., PDF, DOC).
+- **REQ-FR-SSB-5:** System must provide simple query generation based on PIC inputs and filters, forming a boolean query (AND between PIC categories, OR within terms of a category).
+- **REQ-FR-SSB-6:** System must offer a real-time query preview that updates as the user modifies terms and filters.
+- **REQ-FR-SSB-7:** Users must be able to specify the maximum number of search results to retrieve per query.
+- **REQ-FR-SSB-8:** Users must be able to save the search strategy (session and queries) without immediate execution.
+- **REQ-FR-SSB-9:** Users must be able to initiate search execution, which then transitions to the `Search Execution Status Page`.
+
+#### Technical Requirements
+- **REQ-TR-SSB-1:** Search session and query data must be stored and managed via `SearchSession` and `SearchQuery` entities.
+- **REQ-TR-SSB-2:** The query generation logic must correctly translate PIC inputs and filters into valid search engine query strings.
+- **REQ-TR-SSB-3:** The UI must provide clear feedback and validation for inputs.
+
+### Phase 2 Requirements (Enhancements)
+
+#### Functional Requirements
+- **REQ-FR-SSB-P2-1:** System should support advanced concept relationships and operators within the query builder (e.g., NOT, proximity operators if supported by search engines).
+- **REQ-FR-SSB-P2-2:** System may provide AI-assisted query suggestions or term expansion.
+- **REQ-FR-SSB-P2-3:** System must support query history and versioning for search strategies.
+- **REQ-FR-SSB-P2-4:** System may include a visual query builder interface for more complex query construction.
+- **REQ-FR-SSB-P2-5:** System must allow users to save search strategies as templates and create new strategies from these templates.
+- **REQ-FR-SSB-P2-6:** System should integrate with MeSH terms or other relevant ontologies for term suggestion/expansion.
+- **REQ-FR-SSB-P2-7:** System must support configuration for multiple search APIs (Google, Bing, PubMed, etc.) from within the strategy builder.
+- **REQ-FR-SSB-P2-8:** Lead Reviewers should be able to edit the last saved strategy; execution of searches is restricted to Lead Reviewers.
+
+#### Technical Requirements
+- **REQ-TR-SSB-P2-1:** Query versioning and template management will require enhancements to `SearchSession` and `SearchQuery` entities or new related entities.
+- **REQ-TR-SSB-P2-2:** Integration with multiple search APIs will require adaptable query generation logic and parameter handling.
+- **REQ-TR-SSB-P2-3:** Collaborative strategy building features will necessitate real-time updates and conflict management if implemented.
+
 ## Phase 1 Implementation
 
 ### 1. Search Strategy Builder Structure

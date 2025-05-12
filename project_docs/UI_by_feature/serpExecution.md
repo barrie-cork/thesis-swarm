@@ -4,6 +4,43 @@
 
 The SERP (Search Engine Results Page) Execution feature enables users to execute search queries across selected search engines via external APIs and manage the results. This implementation plan outlines a streamlined interface for configuring, executing, and monitoring search operations with clear feedback on progress and results. The design focuses on providing users with control over their search parameters while maintaining transparency about search execution status and outcomes.
 
+## Core Requirements
+
+This section outlines the core functional and technical requirements for the SERP Execution feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
+
+### Phase 1 Requirements
+
+#### Functional Requirements
+- **REQ-FR-SERP-1:** System must integrate with the Google Search API via Serper for executing search queries.
+- **REQ-FR-SERP-2:** System must handle basic pagination of search results fetched from the API.
+- **REQ-FR-SERP-3:** System must provide a `Search Execution Status Page` (or a `Search Execution Dashboard` with status indicators) that displays simple progress tracking for search execution (e.g., number of queries remaining, basic progress bar).
+- **REQ-FR-SERP-4:** System must store raw search results (`RawSearchResult` entity) retrieved from the API.
+- **REQ-FR-SERP-5:** System must implement basic error handling for search execution, displaying informative messages to the user if an API call fails or a query cannot be executed.
+- **REQ-FR-SERP-6:** System must allow users to specify the maximum number of search results to retrieve per query (as defined in `REQ-FR-SSB-7`).
+- **REQ-FR-SERP-7:** Upon completion of SERP query execution and initial backend processing (by Results Manager), the user should be transitioned from the `Search Execution Status Page` to the `Results Overview Page`.
+
+#### Technical Requirements
+- **REQ-TR-SERP-1:** API integration with Serper must be robust, handling API keys securely and respecting rate limits.
+- **REQ-TR-SERP-2:** Search execution should be performed asynchronously (background job) to avoid blocking the UI, with status updates reflected in the `SearchExecution` entity.
+- **REQ-TR-SERP-3:** Raw results must be correctly mapped and stored in the `RawSearchResult` entity, associated with the correct `SearchQuery` and `SearchExecution`.
+
+### Phase 2 Requirements (Enhancements)
+
+#### Functional Requirements
+- **REQ-FR-SERP-P2-1:** System must support executing searches across multiple APIs (Google Search, Bing, PubMed, DuckDuckGo) configurable by the user.
+- **REQ-FR-SERP-P2-2:** System must provide advanced rate limiting and quota management across multiple APIs.
+- **REQ-FR-SERP-P2-3:** System should support parallel execution of queries across different search engines where feasible.
+- **REQ-FR-SERP-P2-4:** The `Search Execution Status Page` must provide a consolidated, real-time view of both SERP query execution progress (from this feature) AND subsequent results processing stages (from `Results Manager` feature), including normalization, metadata extraction, and deduplication progress.
+- **REQ-FR-SERP-P2-5:** System may allow scheduling of search executions.
+- **REQ-FR-SERP-P2-6:** System should provide more robust error recovery mechanisms for API failures.
+- **REQ-FR-SERP-P2-7:** UI should allow configuration of API-specific parameters if necessary.
+
+#### Technical Requirements
+- **REQ-TR-SERP-P2-1:** Multi-API integration will require a flexible adapter pattern for different search providers.
+- **REQ-TR-SERP-P2-2:** The consolidated `Search Execution Status Page` will require robust communication or shared state/event mechanisms to display progress from both SERP execution and Results Manager processing pipelines.
+- **REQ-TR-SERP-P2-3:** Background job processing (e.g., using Bull or similar) will be essential for managing scheduled and parallel executions.
+- **REQ-TR-SERP-P2-4:** Secure management of multiple API keys will be required.
+
 ## Phase 1 Implementation
 
 ### 1. SERP Execution Feature Structure

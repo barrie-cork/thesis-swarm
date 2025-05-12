@@ -4,6 +4,42 @@
 
 The Review Results feature is designed to provide researchers with a streamlined interface for evaluating, categorising, and annotating search results from systematic reviews. This implementation plan outlines a consolidated approach that handles both results viewing and the review process within a unified interface, reducing context switching and improving workflow efficiency.
 
+## Core Requirements
+
+This section outlines the core functional and technical requirements for the Review Results feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
+
+### Phase 1 Requirements
+
+#### Functional Requirements
+- **REQ-FR-RR-1:** System must support basic inclusion/exclusion tagging of processed search results (e.g., Include, Exclude, Maybe).
+- **REQ-FR-RR-2:** System must provide a simple notes system allowing users to add annotations to individual results.
+- **REQ-FR-RR-3:** System must support basic filtering of reviewed results (e.g., by tag status, document type).
+- **REQ-FR-RR-4:** System must track and display review progress (e.g., number of results tagged as include/exclude/maybe, percentage complete).
+- **REQ-FR-RR-5:** The review workflow must align with PRISMA principles (e.g., clear stages for screening, eligibility).
+- **REQ-FR-RR-6:** Users must be able to view details of each processed result, including title, snippet, URL, and extracted metadata.
+- **REQ-FR-RR-7:** When a result is tagged as "Exclude", the user must be able to specify an exclusion reason from a predefined list or add a custom reason.
+
+#### Technical Requirements
+- **REQ-TR-RR-1:** Tagging and note-taking actions must efficiently update `ReviewTagAssignment` and `Note` entities.
+- **REQ-TR-RR-2:** The UI must handle potentially large lists of results efficiently, likely using virtualized scrolling or pagination.
+- **REQ-TR-RR-3:** All review actions (tagging, notes) should ideally auto-save to prevent data loss.
+
+### Phase 2 Requirements (Enhancements)
+
+#### Functional Requirements
+- **REQ-FR-RR-P2-1:** System must support advanced tagging with custom tags created by users for a specific session.
+- **REQ-FR-RR-P2-2:** System must implement multi-reviewer support, including assigning results to reviewers and managing their progress.
+- **REQ-FR-RR-P2-3:** System must provide tools for conflict detection and resolution when multiple reviewers screen the same results.
+- **REQ-FR-RR-P2-4:** System should provide an interface for managing and resolving duplicate results identified by the `Results Manager`.
+- **REQ-FR-RR-P2-5:** System should support full-text preview for certain document types and allow for highlighting and annotations on the full text.
+- **REQ-FR-RR-P2-6:** System may incorporate AI-assisted review features, such as smart tagging suggestions or relevance ranking.
+- **REQ-FR-RR-P2-7:** System must provide enhanced visual feedback and analytics on review progress, including inter-reviewer reliability statistics.
+
+#### Technical Requirements
+- **REQ-TR-RR-P2-1:** Collaborative review features (multi-reviewer, conflict resolution) must handle concurrent data modifications and provide real-time updates where appropriate.
+- **REQ-TR-RR-P2-2:** Duplicate management UI must clearly present potential duplicates and allow users to confirm or reject relationships.
+- **REQ-TR-RR-P2-3:** Full-text integration may require handling various document formats and providing a performant viewing/annotation experience.
+
 ## Phase 1 Implementation
 
 ### 1. Review Results Feature Structure

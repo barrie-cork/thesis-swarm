@@ -153,3 +153,38 @@ The architecture provides clear extension points for Phase 2 enhancements:
 2. **Collaborative Review**: Multi-user annotation and review
 3. **Machine Learning**: Integration with NLP services for automated processing
 4. **Advanced Reporting**: Extended analysis and visualization options
+
+## Core Requirements
+
+This section outlines the core functional and technical requirements for the Authentication feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
+
+### Phase 1 Requirements
+
+#### Functional Requirements
+- **REQ-FR-AUTH-1:** System must support user registration with username and password.
+- **REQ-FR-AUTH-2:** System must provide user login functionality.
+- **REQ-FR-AUTH-3:** System must support user profile management (basic information, password change).
+- **REQ-FR-AUTH-4:** System must implement JWT-based authentication for secure sessions.
+- **REQ-FR-AUTH-5:** System must implement basic role-based permissions (default to "Researcher" role upon registration).
+- **REQ-FR-AUTH-6:** System must provide a mechanism for password recovery (e.g., forgot password link and email-based reset).
+- **REQ-FR-AUTH-7:** Upon successful authentication, users must be redirected to the Review Manager Dashboard.
+
+#### Technical Requirements
+- **REQ-TR-AUTH-1:** Authentication mechanisms must integrate with the Wasp `auth` system as defined in `main.wasp`.
+- **REQ-TR-AUTH-2:** User credentials (passwords) must be securely hashed and stored, leveraging Wasp's built-in capabilities.
+
+### Phase 2 Requirements (Enhancements)
+
+#### Functional Requirements
+- **REQ-FR-AUTH-P2-1:** System must support additional authentication methods, specifically OAuth with Google. (Future consideration: ORCID).
+- **REQ-FR-AUTH-P2-2:** System must implement multi-factor authentication (MFA) setup and verification.
+- **REQ-FR-AUTH-P2-3:** System must support advanced role-based access control (RBAC) with distinct roles (e.g., Researcher, Reviewer, Admin) impacting feature access and data visibility throughout the application.
+- **REQ-FR-AUTH-P2-4:** System must provide UI components and workflows for organization creation and management by authorized users.
+- **REQ-FR-AUTH-P2-5:** System must provide UI components and workflows for team creation and management within organizations, including member invitations and role assignments within a team/session context.
+- **REQ-FR-AUTH-P2-6:** System must include an administrative control panel UI for user management (view users, manage account status) and basic system monitoring.
+- **REQ-FR-AUTH-P2-7:** User profile UI should be extendable to include academic/professional affiliations and research interests.
+
+#### Technical Requirements
+- **REQ-TR-AUTH-P2-1:** OAuth integration must securely handle token exchange and user data retrieval, integrating with Wasp's auth methods.
+- **REQ-TR-AUTH-P2-2:** MFA implementation should support TOTP-based authenticator apps.
+- **REQ-TR-AUTH-P2-3:** RBAC and organization/team structures must be reflected in database schema and query authorization logic, accessible and manageable via defined Wasp operations.

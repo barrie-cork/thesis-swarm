@@ -18,7 +18,8 @@ The application focuses on:
 - **Search Strategy**: Building and managing search queries and sessions.
 - **SERP Execution**: Executing searches via external APIs and managing results.
 - **Results Manager**: Processing and normalizing search results, including duplicate detection.
-- **Review Results**: Tagging, annotating, and reviewing processed results.
+- **Review Manager**: Managing review sessions, assignments, and progress (e.g., via a dashboard).
+- **Review Results**: Tagging, annotating, and reviewing individual processed results.
 - **Reporting**: Generating PRISMA flow diagrams, statistics, and data exports.
 
 ## Tech Stack

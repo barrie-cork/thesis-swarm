@@ -1,0 +1,205 @@
+app ThesisGrey {
+  title: "Thesis Grey",
+  wasp: { version: "^0.16.0" },
+  db: {
+    system: PostgreSQL,
+    prisma: {
+      clientPreviewFeatures: ["extendedWhereUnique"]
+    }
+  },
+  auth: {
+    userEntity: User,
+    methods: {
+      usernameAndPassword: {}
+      // Phase 2: Add OAuth methods
+      // google: {},
+    },
+    onAuthFailedRedirectTo: "/login"
+    // Phase 2: Add roles
+    // roles: {
+    //   researcher: {},
+    //   reviewer: {},
+    //   admin: {}
+    // }
+  },
+  dependencies: [
+    ("axios", "1.4.0")
+  ],
+  devDependencies: [
+    ("autoprefixer", "10.4.14"),
+    ("postcss", "8.4.27"),
+    ("tailwindcss", "3.3.3")
+  ]
+}
+
+// Entities have been moved to schema.prisma
+
+// Routes
+route HomeRoute { path: "/", to: HomePage }
+route LoginRoute { path: "/login", to: LoginPage }
+route SignupRoute { path: "/signup", to: SignupPage }
+route ProfileRoute { path: "/profile", to: ProfilePage }
+route SearchStrategyRoute { path: "/search-strategy", to: SearchStrategyPage }
+route SearchExecutionRoute { path: "/search-execution/:sessionId", to: SearchExecutionPage }
+route ResultsManagerRoute { path: "/results/:sessionId", to: ResultsManagerPage }
+route ReviewRoute { path: "/review/:sessionId", to: ReviewPage }
+route ReportingRoute { path: "/reporting/:sessionId", to: ReportingPage }
+
+// Phase 2 routes (commented out for now)
+// route AdminRoute { path: "/admin", to: AdminPage }
+// route OrganizationsRoute { path: "/organizations", to: OrganizationsPage }
+// route TeamsRoute { path: "/teams", to: TeamsPage }
+
+// Pages
+page HomePage {
+  component: import { HomePage } from "@src/client/home/pages/HomePage"
+}
+
+page LoginPage {
+  component: import { LoginPage } from "@src/client/auth/pages/LoginPage"
+}
+
+page SignupPage {
+  component: import { SignupPage } from "@src/client/auth/pages/SignupPage"
+}
+
+page ProfilePage {
+  authRequired: true,
+  component: import { ProfilePage } from "@src/client/auth/pages/ProfilePage"
+}
+
+page SearchStrategyPage {
+  authRequired: true,
+  component: import { SearchStrategyPage } from "@src/client/searchStrategy/pages/SearchStrategyPage"
+}
+
+page SearchExecutionPage {
+  authRequired: true,
+  component: import { SearchExecutionPage } from "@src/client/serpExecution/pages/SearchExecutionPage"
+}
+
+page ResultsManagerPage {
+  authRequired: true,
+  component: import { ResultsManagerPage } from "@src/client/resultsManager/pages/ResultsManagerPage"
+}
+
+page ReviewPage {
+  authRequired: true,
+  component: import { ReviewPage } from "@src/client/reviewResults/pages/ReviewPage"
+}
+
+page ReportingPage {
+  authRequired: true,
+  component: import { ReportingPage } from "@src/client/reporting/pages/ReportingPage"
+}
+
+// Queries
+query getSearchSessions {
+  fn: import { getSearchSessions } from "@src/server/searchStrategy/queries.js",
+  entities: [SearchSession]
+}
+
+query getSearchSession {
+  fn: import { getSearchSession } from "@src/server/searchStrategy/queries.js",
+  entities: [SearchSession, SearchQuery]
+}
+
+query getSearchQueries {
+  fn: import { getSearchQueries } from "@src/server/serpExecution/queries.js",
+  entities: [SearchQuery]
+}
+
+query getSearchExecutions {
+  fn: import { getSearchExecutions } from "@src/server/serpExecution/queries.js",
+  entities: [SearchExecution]
+}
+
+query getRawResults {
+  fn: import { getRawResults } from "@src/server/resultsManager/queries.js",
+  entities: [RawSearchResult]
+}
+
+query getProcessedResults {
+  fn: import { getProcessedResults } from "@src/server/resultsManager/queries.js",
+  entities: [ProcessedResult]
+}
+
+query getReviewTags {
+  fn: import { getReviewTags } from "@src/server/reviewResults/queries.js",
+  entities: [ReviewTag]
+}
+
+query getResultsWithTags {
+  fn: import { getResultsWithTags } from "@src/server/reviewResults/queries.js",
+  entities: [ProcessedResult, ReviewTagAssignment, ReviewTag, Note]
+}
+
+query getReportData {
+  fn: import { getReportData } from "@src/server/reporting/queries.js",
+  entities: [SearchSession, ProcessedResult, ReviewTagAssignment, ReviewTag]
+}
+
+query getUserProfile {
+  fn: import { getUserProfile } from "@src/server/auth/queries.js",
+  entities: [User]
+}
+
+query getUserSearchSessions {
+  fn: import { getUserSearchSessions } from "@src/server/auth/queries.js",
+  entities: [SearchSession]
+}
+
+// Actions
+action createSearchSession {
+  fn: import { createSearchSession } from "@src/server/searchStrategy/actions.js",
+  entities: [SearchSession]
+}
+
+action createSearchQuery {
+  fn: import { createSearchQuery } from "@src/server/searchStrategy/actions.js",
+  entities: [SearchQuery]
+}
+
+action updateSearchQuery {
+  fn: import { updateSearchQuery } from "@src/server/searchStrategy/actions.js",
+  entities: [SearchQuery]
+}
+
+action executeSearchQuery {
+  fn: import { executeSearchQuery } from "@src/server/serpExecution/actions.js",
+  entities: [SearchQuery, SearchExecution, RawSearchResult]
+}
+
+action processSessionResults {
+  fn: import { processSessionResults } from "@src/server/resultsManager/actions.js",
+  entities: [RawSearchResult, ProcessedResult, DuplicateRelationship]
+}
+
+action createReviewTag {
+  fn: import { createReviewTag } from "@src/server/reviewResults/actions.js",
+  entities: [ReviewTag]
+}
+
+action assignTag {
+  fn: import { assignTag } from "@src/server/reviewResults/actions.js",
+  entities: [ReviewTagAssignment]
+}
+
+action createNote {
+  fn: import { createNote } from "@src/server/reviewResults/actions.js",
+  entities: [Note]
+}
+
+action exportResults {
+  fn: import { exportResults } from "@src/server/reporting/actions.js"
+}
+
+action updateUserProfile {
+  fn: import { updateUserProfile } from "@src/server/auth/actions.js",
+  entities: [User]
+}
+
+action changePassword {
+  fn: import { changePassword } from "@src/server/auth/actions.js",
+  entities: [User]
+}

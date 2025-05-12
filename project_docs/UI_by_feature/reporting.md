@@ -4,6 +4,37 @@
 
 The Reporting & Export feature provides researchers with tools to generate structured reports from their systematic reviews, ensuring compliance with PRISMA (Preferred Reporting Items for Systematic Reviews and Meta-Analyses) guidelines. This plan outlines a phased implementation approach that delivers essential reporting capabilities in Phase 1, with enhanced visualization, customization, and export options in Phase 2.
 
+## Core Requirements
+
+This section outlines the core functional and technical requirements for the Reporting & Export feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
+
+### Phase 1 Requirements
+
+#### Functional Requirements
+- **REQ-FR-RE-1:** System must generate basic PRISMA flow diagrams (text-based or simple visual representation).
+- **REQ-FR-RE-2:** System must support simple report generation, displaying key statistics and search parameters in a structured, copyable format.
+- **REQ-FR-RE-3:** System must allow export of included/excluded results lists in CSV and JSON formats.
+- **REQ-FR-RE-4:** System must provide basic statistics on search results, including counts for each stage of the review (retrieved, duplicates, reviewed, included, excluded).
+
+#### Technical Requirements
+- **REQ-TR-RE-1:** Report generation logic must accurately reflect data from `SearchSession`, `ProcessedResult`, and `ReviewTagAssignment` entities.
+- **REQ-TR-RE-2:** Export functionality must be implemented via Wasp actions ensuring correct data formatting and file generation.
+
+### Phase 2 Requirements (Enhancements)
+
+#### Functional Requirements
+- **REQ-FR-RE-P2-1:** System must provide advanced, interactive PRISMA flow diagram visualizations with export options (PNG, SVG).
+- **REQ-FR-RE-P2-2:** System must support custom report templates for structuring and branding reports.
+- **REQ-FR-RE-P2-3:** System must allow export of full reports in PDF format and data in additional formats (e.g., RIS for reference managers).
+- **REQ-FR-RE-P2-4:** System must provide an extended analytics dashboard with metrics like inter-reviewer reliability and source distribution.
+- **REQ-FR-RE-P2-5:** System must support publication-ready tables and figures, and potentially integrate with citation management tools.
+- **REQ-FR-RE-P2-6:** System must allow for the creation, saving, and sharing of report templates.
+
+#### Technical Requirements
+- **REQ-TR-RE-P2-1:** Advanced visualization components (e.g., for PRISMA diagrams) should be performant and interactive.
+- **REQ-TR-RE-P2-2:** PDF generation should handle complex layouts and potentially large datasets efficiently.
+- **REQ-TR-RE-P2-3:** Template management system should allow for flexible definition and application of templates to report data.
+
 ## Phase 1 Implementation
 
 ### 1. Reporting & Export Feature Structure

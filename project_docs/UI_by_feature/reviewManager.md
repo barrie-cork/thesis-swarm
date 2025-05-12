@@ -4,6 +4,40 @@
 
 The Review Manager feature serves as the central hub where users manage their systematic review sessions. It provides an overview of all reviews the user is involved in, facilitates the creation of new reviews, and (in Phase 2) manages collaborations and invitations. This implementation plan outlines a structured approach for building this feature across both phases of development.
 
+## Core Requirements
+
+This section outlines the core functional and technical requirements for the Review Manager feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
+
+### Phase 1 Requirements
+
+#### Functional Requirements
+- **REQ-FR-RMGR-1:** System must provide a `Review Manager Dashboard` as the main landing page after user authentication.
+- **REQ-FR-RMGR-2:** The dashboard must display a list of all review sessions owned by or assigned to the current user.
+- **REQ-FR-RMGR-3:** Each review session must be represented by a `Review Session Card` displaying its name, creation date, and status (e.g., Draft, In Progress, Completed).
+- **REQ-FR-RMGR-4:** System must provide a clear call-to-action (e.g., "Create New Review" button) that initiates a new review session by navigating the user to the `Search Strategy Builder`.
+- **REQ-FR-RMGR-5:** Users must be able to navigate from a review session card to the appropriate stage of that review (e.g., continue to Search Strategy, Search Execution, or Review Results page based on status).
+
+#### Technical Requirements
+- **REQ-TR-RMGR-1:** The `Review Manager Dashboard` must efficiently query and display `SearchSession` entities associated with the authenticated user.
+- **REQ-TR-RMGR-2:** Navigation to other feature pages (Search Strategy, etc.) must be handled by Wasp routing.
+
+### Phase 2 Requirements (Enhancements)
+
+#### Functional Requirements
+- **REQ-FR-RMGR-P2-1:** For Phase 2 reviews, selecting a session from the `Review Manager Dashboard` must navigate to a dedicated `Session Hub Page` for that session.
+- **REQ-FR-RMGR-P2-2:** The `Session Hub Page` must provide role-based views and navigation to session-specific functionalities (Search Strategy, Results Overview, Review Interface, Reporting, Team Management, Session Settings, Deduplication Overview, Processing Status Dashboard).
+- **REQ-FR-RMGR-P2-3:** The `Review Manager Dashboard` and `Session Hub Page` must support team-based reviews, showing team indicators and member information where relevant.
+- **REQ-FR-RMGR-P2-4:** Lead Reviewers must be able to configure review settings (e.g., validation rules, allocation settings) from the `Session Hub Page` or a dedicated settings panel.
+- **REQ-FR-RMGR-P2-5:** System must support an invitation management system for users to be invited to join review sessions, with a section for pending invites on the `Review Manager Dashboard` or `Session Hub Page`.
+- **REQ-FR-RMGR-P2-6:** The `Review Manager Dashboard` should include advanced filtering (by team, role) and organizational tools (tagging, archiving) for review sessions.
+- **REQ-FR-RMGR-P2-7:** System should support the creation and use of review session templates.
+- **REQ-FR-RMGR-P2-8:** The `Review Manager Dashboard` and/or `Session Hub Page` should display analytics related to review progress and team productivity.
+
+#### Technical Requirements
+- **REQ-TR-RMGR-P2-1:** The `Session Hub Page` must dynamically render content and actions based on user roles (Lead Reviewer, Reviewer) within the context of a specific `SearchSession`.
+- **REQ-TR-RMGR-P2-2:** Team and role information must be integrated into queries and UI components from `Team`, `TeamMembership`, and `User` (with `role` field) entities.
+- **REQ-TR-RMGR-P2-3:** Invitation and template functionalities must be backed by appropriate Wasp actions and queries, interacting with relevant entities.
+
 ## Phase 1 Implementation
 
 ### 1. Review Manager Feature Structure
