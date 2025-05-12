@@ -1,135 +1,157 @@
 # Authentication Feature: UX and UI Implementation Plan
 
+---
+**Phase:** Both (Core functionality in Phase 1, enhancements in Phase 2)
+---
+
 ## Overview
 
-The Authentication Feature establishes the entry point and identity management system for the Thesis Grey application. This implementation plan outlines a user-friendly authentication flow with clear transitions, focusing on security and usability while accommodating the role-based access controls required for collaborative research in phase 2. Wasp is leveraged through out.
+The Authentication Feature establishes the entry point and identity management system for the Thesis Grey application. This implementation plan outlines a user-friendly authentication flow using the standard `Login Page` and `Signup Page`, focusing on security and usability. It leverages Wasp's built-in authentication and accommodates role-based access controls.
+
+## Core Requirements
+
+This section outlines the core functional and technical requirements for the Authentication feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
+
+### Phase 1 Requirements
+
+#### Functional Requirements
+- **REQ-FR-AUTH-1:** System must provide a `Login Page` (`/login`) with username and password fields.
+- **REQ-FR-AUTH-2:** System must provide a `Signup Page` (`/signup`) with username, password, and confirmation fields.
+- **REQ-FR-AUTH-3:** System must provide a `User Profile Page` (`/profile`) for authenticated users to manage their account.
+- **REQ-FR-AUTH-4:** System must redirect unauthenticated users to the `Login Page`.
+- **REQ-FR-AUTH-5:** System must redirect authenticated users to the `Review Manager Dashboard` after successful login/signup.
+- **REQ-FR-AUTH-6:** System must display appropriate error messages for authentication failures.
+- **REQ-FR-AUTH-7:** System must provide password visibility toggle on login/signup forms.
+- **REQ-FR-AUTH-8:** System must provide "Remember me" functionality on the login form.
+- **REQ-FR-AUTH-9:** System must provide navigation between login and signup pages.
+- **REQ-FR-AUTH-10:** System must support basic password change functionality on the profile page.
+
+#### Technical Requirements
+- **REQ-TR-AUTH-1:** System must use Wasp's built-in authentication components and hooks.
+- **REQ-TR-AUTH-2:** System must implement JWT-based authentication.
+- **REQ-TR-AUTH-3:** System must securely store and validate user credentials.
+- **REQ-TR-AUTH-4:** System must provide proper form validation and error handling.
+
+### Phase 2 Requirements (Enhancements)
+
+#### Functional Requirements
+- **REQ-FR-AUTH-P2-1:** System must support OAuth integration (Google, ORCID).
+- **REQ-FR-AUTH-P2-2:** System must support Multi-Factor Authentication (MFA).
+- **REQ-FR-AUTH-P2-3:** System must provide organization/team account creation and management.
+- **REQ-FR-AUTH-P2-4:** System must support domain-based automatic team joining.
+- **REQ-FR-AUTH-P2-5:** System must provide enhanced user profile management with academic/professional affiliations.
+- **REQ-FR-AUTH-P2-6:** System must support public profile options with privacy settings.
+- **REQ-FR-AUTH-P2-7:** System must provide administrative user management interface.
+- **REQ-FR-AUTH-P2-8:** System must support session monitoring and management.
+- **REQ-FR-AUTH-P2-9:** System must provide account recovery options.
+- **REQ-FR-AUTH-P2-10:** System must support role-based access control within organizations.
+
+#### Technical Requirements
+- **REQ-TR-AUTH-P2-1:** System must implement secure OAuth provider integration.
+- **REQ-TR-AUTH-P2-2:** System must support TOTP-based MFA implementation.
+- **REQ-TR-AUTH-P2-3:** System must provide secure backup codes for MFA recovery.
+- **REQ-TR-AUTH-P2-4:** System must implement organization/team data structures.
+- **REQ-TR-AUTH-P2-5:** System must support secure session management and monitoring.
 
 ## Phase 1 Implementation
 
+---
+**Phase:** Phase 1
+---
+
 ### 1. Authentication Feature Structure
 
-#### Pages & Screens:
+#### Standard Pages:
 
-* **Authentication Page:**
-  * Single consolidated entry point with tab-based navigation
-  * Login tab (default view) with username and password fields
-  * Registration tab with required fields for new account creation
-  * Password visibility toggle for both login and registration
-  * Remember me option and forgot password link
+*   **Login Page (`/login`):**
+    *   Standard Wasp `LoginForm` component.
+    *   Username and password fields.
+    *   Password visibility toggle.
+    *   "Remember me" option (if configured).
+    *   Link to the `Signup Page`.
+    *   Forgot password link/functionality (Wasp default or custom implementation).
+*   **Signup Page (`/signup`):**
+    *   Standard Wasp `SignupForm` component.
+    *   Username, password, and password confirmation fields.
+    *   Optional fields (like email) if configured in `main.wasp`.
+    *   Link back to the `Login Page`.
+*   **User Profile Page (`/profile`):** (Post-authentication)
+    *   Accessed via navigation after login.
+    *   Displays basic user information (e.g., username).
+    *   Allows password updates.
+    *   (Future enhancements can add more profile fields).
+*   **(Optional) Password Recovery Pages:**
+    *   Standard Wasp flow or custom implementation if needed.
+    *   Typically involves an email input page, a confirmation message, and a password reset page accessed via email link.
 
-* **Profile Update Page:**
-  * Optional first-time setup for new users
-  * Form for entering optional profile information
-  * Option to upload a profile image
-  * Field for specifying research interests and expertise
+#### Workflow & Transitions:
 
-* **Password Recovery Page:**
-  * Email input for password reset link
-  * Confirmation screen after reset request
-  * Reset password form (accessed via emailed link)
-  * Success notification after password change
+**Workflow (Login):**
 
-#### Transitions & Interactions:
+1.  Unauthenticated user accesses the application or a protected route.
+2.  User is redirected to the `Login Page` (`/login`).
+3.  User enters credentials and submits the form.
+4.  On successful login, the user is redirected to the `Review Manager Dashboard` (`/review-manager`), which serves as the central landing page.
+5.  On failure, an error message is displayed on the `Login Page`.
 
-* **Landing → Authentication:** Unauthenticated users directed to Authentication Page
-* **Tab Toggle:** Simple switch between Login and Registration views
-* **Login → Review Manager Dashboard:** Successful login directs to the main application dashboard, which is the Review Manager Dashboard.
-* **Registration → Profile Update:** New users prompted to complete profile (optional)
-* **Profile Update → Review Manager Dashboard:** After completion or skip, users reach the Review Manager Dashboard.
-* **Authentication → Password Recovery → Authentication:** Complete reset flow returns to login
+*(Refer to `workflow.mmd` for the visual flow.)*
 
-### 2. UI Components
+**Workflow (Signup):**
 
-#### Authentication Layout
+1.  User navigates to the `Signup Page` (`/signup`), typically via a link on the `Login Page`.
+2.  User enters required details (username, password) and submits the form.
+3.  On successful registration, the user is logged in and redirected to the `Review Manager Dashboard` (`/review-manager`).
+4.  On failure (e.g., username taken), an error message is displayed on the `Signup Page`.
 
-* **Header Section:**
-  * Application logo and name
-  * Brief description of the application
-  * Language selector (for internationalization)
+*(Refer to `workflow.mmd` for the visual flow.)*
 
-* **Content Section:**
-  * Tab navigation between Login and Registration
-  * Form fields with inline validation
-  * Error messaging area for authentication failures
-  * Action buttons (Login/Register/Reset)
-  * OAuth provider buttons (prepared for Phase 2)
+**Navigation:**
 
-* **Footer Section:**
-  * Brief terms of service summary
-  * Privacy policy link
-  * Help/support contact information
+*   Unauthenticated Access: Redirected to `/login`.
+*   From `/login`: Link to `/signup`.
+*   From `/signup`: Link to `/login`.
+*   Successful Login/Signup: Redirect to `/review-manager`.
+*   Authenticated Navigation: Access to `/profile` via user menu/navbar.
 
-#### Login Component
+#### Role-Based Access (Phase 1):
 
-* **Username Field:**
-  * Clear labeling and placeholder text
-  * Validation for required entry
-  * Autocomplete support
+*   **All Roles (Unauthenticated):** Can access `Login Page` (`/login`) and `Signup Page` (`/signup`).
+*   **All Roles (Authenticated):** Can access `User Profile Page` (`/profile`) to manage their own account. Access to other application pages depends on specific role permissions defined elsewhere.
 
-* **Password Field:**
-  * Masking with visibility toggle
-  * Password strength indicator
-  * Clear error messaging for failed attempts
+*(Refer to `project_docs/standards/role_access_matrix.md` for full details.)*
 
-* **Action Controls:**
-  * Remember me checkbox
-  * Forgot password link
-  * Primary login button with loading state
-  * Registration tab link
+### 2. UI Components (Leveraging Wasp Auth Components)
 
-#### Registration Component
+#### Authentication Layout (Shared for Login/Signup Pages)
 
-* **Required Fields:**
-  * Username with availability checker
-  * Password with strength requirements and confirmation
-  * Agreement to terms checkbox
+*   **Structure:** Typically a centered card/container holding the Wasp auth form.
+    *   Application logo/name header.
+    *   The `LoginForm` or `SignupForm` component.
+    *   Links for toggling between Login/Signup.
+    *   Optional footer with terms/privacy links.
 
-* **Optional Fields:**
-  * Email address for recovery (recommended)
-  * First and last name
+#### Login Component (`LoginForm` from `wasp/client/auth`)
 
-* **Action Controls:**
-  * Register button with loading state
-  * Back to login link
-  * Clear form option
+*   Provides standard username/password fields and submission logic.
+*   Customization can be done via CSS/Tailwind targeting Wasp's generated class names or by wrapping the component.
+
+#### Signup Component (`SignupForm` from `wasp/client/auth`)
+
+*   Provides standard username/password/confirmation fields.
+*   Handles registration logic.
+*   Customization similar to `LoginForm`.
 
 ### 3. Interaction Patterns
 
 #### Form Validation
 
-* **Inline Validation:**
-  * Real-time feedback as users type
-  * Username availability check
-  * Password strength meter
-  * Clear error messaging with resolution guidance
-
-* **Submission Validation:**
-  * Comprehensive check before form submission
-  * Preventing multiple submissions
-  * Graceful error handling with specific messages
-  * Focus management after validation failures
+*   Leverages Wasp's built-in validation for required fields, password matching, etc.
+*   Error messages are displayed automatically by the Wasp components.
 
 #### Authentication Flow
 
-* **Login Process:**
-  * Submit credentials
-  * Show loading indicator
-  * Handle success or display specific errors
-  * Maintain entered username on failure
-  * Redirect to intended destination or dashboard
-
-* **Registration Process:**
-  * Submit registration details
-  * Show processing indicator
-  * Confirm successful account creation
-  * Optional email verification (prepared for Phase 2)
-  * Transition to profile completion
-
-* **Session Management:**
-  * Secure cookie-based session tracking
-  * Automatic renewal of authentication tokens
-  * Session timeout handling
-  * Remember me functionality
+*   Handled primarily by Wasp's auth system (`useAuth`, `login`, `signup` functions).
+*   Session management (cookies/tokens) is handled by Wasp.
 
 ### 4. Visual Design and Styling Guidelines
 
@@ -210,31 +232,15 @@ This section details the specific visual styling for the Authentication feature,
 
 ### 5. Accessibility Considerations
 
-*   **Screen Reader Support:**
-    *   Proper labeling of all form fields
-    *   Error messages linked to relevant inputs via `aria-describedby`
-    *   Focus management for form sequences
-    *   Semantic HTML structure (e.g., proper heading hierarchy)
-
-*   **Keyboard Navigation:**
-    *   Logical tab order through form elements
-    *   Skip links for bypassing navigation
-    *   Clear focus indicators (beyond browser defaults)
-    *   Keyboard shortcuts for common actions
-
-*   **Visual Accessibility:**
-    *   Sufficient color contrast for text and UI elements
-    *   Text resizability without breaking layouts
-    *   Support for screen magnification
-    *   Alternative text for all images and icons
-
-*   **Cognitive Accessibility:**
-    *   Simple, clear language in instructions and errors
-    *   Consistent positioning of elements across flows
-    *   Progressive disclosure for complex operations
-    *   Adequate timeout periods for session expiration
+*   Wasp's default components aim for accessibility.
+*   Ensure custom wrappers or styling maintain accessibility standards (proper labels, keyboard navigation, contrast, etc.).
+*   Follow general accessibility best practices outlined previously.
 
 ## Phase 2 Enhancements
+
+---
+**Phase:** Phase 2
+---
 
 ### 1. Enhanced Authentication Methods
 
