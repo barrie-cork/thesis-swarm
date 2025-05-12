@@ -1,10 +1,10 @@
 # Thesis Grey: Phase 1 PRD
 
-**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/architecture/workflow.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
+**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/mermaid.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
 
 ## Project Overview
 
-Thesis Grey is a specialised search application designed to facilitate the discovery and management of grey literature for clinical guideline development. The application follows a phased implementation approach where Phase 1 delivers core functionality with a streamlined feature set, establishing the foundation for more advanced capabilities in Phase 2. **Upon successful authentication, users are directed to the `Review Manager Dashboard`. This dashboard serves as the central hub where users can view and manage their existing review sessions or initiate new ones.**
+Thesis Grey is a specialised search application designed to facilitate the discovery and management of grey literature for clinical guideline development. The application follows a phased implementation approach where Phase 1 delivers core functionality with a streamlined feature set, establishing the foundation for more advanced capabilities in Phase 2. **Upon successful authentication, users are directed to the `Search Strategy Page` (`/search-strategy`). This page serves as the central hub where users can view and manage their existing search sessions or initiate new ones.**
 
 This PRD outlines the Phase 1 implementation, which follows Vertical Slice Architecture (VSA) principles to deliver a complete working application focused on essential features while providing clear extension points for future development.
 
@@ -183,28 +183,25 @@ thesis-grey/
 ├── main.wasp                 # Main Wasp configuration
 ├── src/
 │   ├── client/               # Client-side code
-│   │   ├── auth/             # Authentication UI components
-│   │   ├── reviewManager/    # Review session listing and management (Review Manager Dashboard)
-│   │   ├── searchStrategy/   # Search strategy builder components
-│   │   ├── serpExecution/    # Search execution components
-│   │   ├── resultsManager/   # Results processing components
-│   │   ├── reviewResults/    # Review interface components
-│   │   ├── reporting/        # Basic reporting components
-│   │   └── shared/           # Shared UI components
+│   │   ├── auth/             # Authentication (`LoginPage`, `SignupPage`, `UserProfilePage`)
+│   │   ├── searchStrategy/   # `SearchStrategyPage` (session list, creation, strategy building)
+│   │   ├── serpExecution/    # `SearchExecutionStatusPage`
+│   │   ├── reviewResults/    # `ResultsOverviewPage`, `ReviewInterfacePage`
+│   │   ├── reporting/        # `ReportingPage`
+│   │   └── shared/           # Shared UI components (e.g., MainLayout)
 │   ├── server/               # Server-side code
-│   │   ├── auth/             # Authentication logic
-│   │   ├── reviewManager/    # Server logic for review session management
-│   │   ├── searchStrategy/   # Search strategy logic
-│   │   ├── serpExecution/    # Search execution logic
-│   │   ├── resultsManager/   # Results processing logic
-│   │   ├── reviewResults/    # Review logic
-│   │   ├── reporting/        # Reporting logic
-│   │   └── shared/           # Shared server utilities
+│   │   ├── auth/
+│   │   ├── searchStrategy/
+│   │   ├── serpExecution/
+│   │   ├── resultsManager/   # Backend logic for processing results
+│   │   ├── reviewResults/
+│   │   ├── reporting/
+│   │   └── shared/
 │   └── shared/               # Code shared between client and server
-│       ├── types.ts          # TypeScript types
-│       └── utils.ts          # Utility functions
-├── public/                   # Public assets
-└── migrations/               # Database migrations
+│       ├── types.ts
+│       └── utils.ts
+├── public/
+└── migrations/
 ```
 
 ### Vertical Slice Implementation
@@ -266,15 +263,14 @@ app ThesisGrey {
     methods: {
       usernameAndPassword: {},
     },
-    onAuthFailedRedirectTo: "/login"
+    onAuthFailedRedirectTo: "/login",
+    onAuthSucceededRedirectTo: "/search-strategy" // Default landing page for P1
   }
 }
 
-route RootRoute { path: "/", to: ReviewManagerDashboardPage }
-page ReviewManagerDashboardPage {
-  authRequired: true,
-  component: import { ReviewManagerDashboardPage } from "@src/client/reviewManager/pages/ReviewManagerDashboardPage"
-}
+// Root route now directs to Search Strategy Page after login
+route RootRoute { path: "/", to: SearchStrategyPage } 
+// SearchStrategyPage definition is under its own feature section
 
 route LoginRoute { path: "/login", to: LoginPage }
 page LoginPage {
@@ -286,33 +282,33 @@ page SignupPage {
   component: import { SignupPage } from "@src/client/auth/pages/SignupPage"
 }
 
-route ProfileRoute { path: "/profile", to: ProfilePage }
-page ProfilePage {
+route ProfileRoute { path: "/profile", to: UserProfilePage }
+page UserProfilePage {
   authRequired: true,
-  component: import { ProfilePage } from "@src/client/auth/pages/ProfilePage"
+  component: import { UserProfilePage } from "@src/client/auth/pages/UserProfilePage"
 }
 ```
 
 **Requirements:**
-- User registration and login
-- Profile management
-- JWT-based authentication
-- Basic role-based permissions (Researcher role)
-- Integration with Wasp authentication system
+*   User registration (`SignupPage`) and login (`LoginPage`).
+*   Profile management (`UserProfilePage`).
+*   JWT-based authentication.
+*   Basic role-based permissions (Researcher role initially).
+*   Integration with Wasp authentication system.
 
 **Extension points for Phase 2:**
-- Advanced roles and permissions system
-- Organization-based access control
-- Collaboration features
-- Navigation to a centralized `Session Hub Page` for detailed session management.
+*   Advanced roles and permissions system.
+*   Organization-based access control.
+*   Collaboration features.
+*   Navigation to a centralized `Session Hub Page` for detailed session management.
 
-### 2. Search Strategy Builder
+### 2. Search Strategy & Session Management (`SearchStrategyPage`)
 
 **Phase 1 Implementation:**
 
 ```wasp
-route SearchStrategyRoute { path: "/search-strategy", to: SearchStrategyPage }
-page SearchStrategyPage {
+// SearchStrategyPage is the main landing for authenticated users.
+page SearchStrategyPage { // Path defined by RootRoute or SearchStrategyRoute
   authRequired: true,
   component: import { SearchStrategyPage } from "@src/client/searchStrategy/pages/SearchStrategyPage"
 }
@@ -322,8 +318,8 @@ query getSearchSessions {
   entities: [SearchSession]
 }
 
-query getSearchSession {
-  fn: import { getSearchSession } from "@src/server/searchStrategy/queries.js",
+query getSearchSessionDetails { // For editing a specific session's strategy
+  fn: import { getSearchSessionDetails } from "@src/server/searchStrategy/queries.js",
   entities: [SearchSession, SearchQuery]
 }
 
@@ -332,99 +328,92 @@ action createSearchSession {
   entities: [SearchSession]
 }
 
-action createSearchQuery {
-  fn: import { createSearchQuery } from "@src/server/searchStrategy/actions.js",
-  entities: [SearchQuery]
-}
-
-action updateSearchQuery {
-  fn: import { updateSearchQuery } from "@src/server/searchStrategy/actions.js",
-  entities: [SearchQuery]
+// Action to update session strategy, including its queries
+action updateSearchSessionStrategy {
+  fn: import { updateSearchSessionStrategy } from "@src/server/searchStrategy/actions.js",
+  entities: [SearchSession, SearchQuery]
 }
 ```
 
 **Requirements:**
-- Basic concept grouping (Population, Interest, Context)
-- Domain selection
-- File type filtering
-- Simple query generation
-- Query preview
-- PICO framework support
-- Executing searches transitions the user to the `Search Execution Status Page`.
+*   The `Search Strategy Page` (`/search-strategy`) serves as the primary interface for authenticated users.
+*   Lists user's `SearchSession` entities.
+*   Allows creation of new sessions (name, description).
+*   For a selected session (new or draft), provides an interface for:
+    *   Basic concept grouping (Population, Interest, Context).
+    *   Domain selection.
+    *   File type filtering.
+    *   Simple query generation & real-time preview.
+*   Saving the strategy updates the session and its queries.
+*   Executing searches transitions the user to the `Search Execution Status Page`.
 
 **Extension points for Phase 2:**
-- Advanced concept relationships
-- Query suggestion system
-- Query history and versioning
-- Visual query builder
-- Template library
+*   Advanced concept relationships & operators.
+*   Query suggestion system, history, versioning.
+*   Visual query builder, template library.
+*   (Phase 2) `Session Hub Page` will provide enhanced context-specific navigation and management originating from a selected session.
 
-### 3. SERP Execution
+### 3. SERP Execution (`SearchExecutionStatusPage`)
 
 **Phase 1 Implementation:**
 
 ```wasp
 // Route for the Search Execution Status Page
-route SearchExecutionStatusRoute { path: "/session/:sessionId/status", to: SearchExecutionStatusPage }
+route SearchExecutionStatusRoute { path: "/search-execution/:sessionId", to: SearchExecutionStatusPage }
 page SearchExecutionStatusPage {
   authRequired: true,
   component: import { SearchExecutionStatusPage } from "@src/client/serpExecution/pages/SearchExecutionStatusPage"
 }
 
-query getSearchQueries { // This might be used by SearchStrategy or pre-execution checks
-  fn: import { getSearchQueries } from "@src/server/serpExecution/queries.js",
-  entities: [SearchQuery]
+// Action to trigger all queries in a session and monitor them
+action executeSearchQueriesForSession {
+  fn: import { executeSearchQueriesForSession } from "@src/server/serpExecution/actions.js",
+  entities: [SearchSession, SearchQuery, SearchExecution, RawSearchResult] 
 }
 
-query getSearchExecutions {
-  fn: import { getSearchExecutions } from "@src/server/serpExecution/queries.js",
-  entities: [SearchExecution]
-}
-
-action executeSearchQuery {
-  fn: import { executeSearchQuery } from "@src/server/serpExecution/actions.js",
-  entities: [SearchQuery, SearchExecution, RawSearchResult]
+// Query to get execution status, if needed for polling by the status page
+query getSearchExecutionDetails { 
+  fn: import { getSearchExecutionDetails } from "@src/server/serpExecution/queries.js",
+  entities: [SearchExecution, SearchQuery]
 }
 ```
 
 **Requirements:**
-- Single API integration (Google Search API via Serper)
-- Basic pagination handling
-- Simple progress tracking via the dedicated `Search Execution Status Page`. This page displays the progress of SERP query execution and, upon completion, transitions the user to the `Results Overview Page`.
-- Search execution initiation
-- Raw result storage
-- Basic error handling
+*   Single API integration (Google Search API via Serper).
+*   Basic pagination handling (API-side).
+*   Simple progress tracking on the `Search Execution Status Page` for SERP query execution (e.g., queries completed/total).
+*   Asynchronous search execution initiation.
+*   Raw result storage (`RawSearchResult` entity).
+*   Basic error handling displayed on the status page.
+*   Upon completion of SERP execution AND signal of initial backend processing (from Results Manager), the user is transitioned to the `Results Overview Page`.
 
 **Extension points for Phase 2:**
-- Multi-API integration
-- Advanced rate limiting and quota management
-- Sophisticated error recovery
-- Enhanced progress visualization
-- Parallel query execution
-- Search execution scheduling
+*   Multi-API integration.
+*   Advanced rate limiting, error recovery.
+*   `Search Execution Status Page` enhanced for consolidated SERP + Results Manager processing status.
+*   Search execution scheduling.
 
-### 4. Results Manager
+### 4. Results Management & Overview (`ResultsOverviewPage`)
 
 **Phase 1 Implementation:**
 
 ```wasp
 // Route for the Results Overview Page
-route ResultsOverviewRoute { path: "/session/:sessionId/overview", to: ResultsOverviewPage }
+route ResultsOverviewRoute { path: "/results-overview/:sessionId", to: ResultsOverviewPage }
 page ResultsOverviewPage {
   authRequired: true,
-  component: import { ResultsOverviewPage } from "@src/client/resultsManager/pages/ResultsOverviewPage"
+  component: import { ResultsOverviewPage } from "@src/client/reviewResults/pages/ResultsOverviewPage"
+  // Note: Component is in reviewResults as it's for viewing/starting review
 }
 
-query getRawResults { // Typically used by the backend processing
-  fn: import { getRawResults } from "@src/server/resultsManager/queries.js",
-  entities: [RawSearchResult]
+// Query to get processed results for a session
+query getProcessedResultsForSession {
+  fn: import { getProcessedResultsForSession } from "@src/server/resultsManager/queries.js", 
+  // Server logic for resultsManager handles processing and provides data for this query
+  entities: [ProcessedResult, SearchSession]
 }
 
-query getProcessedResults {
-  fn: import { getProcessedResults } from "@src/server/resultsManager/queries.js",
-  entities: [ProcessedResult]
-}
-
+// Action to trigger backend processing (if not fully automatic post-SERP execution)
 action processSessionResults {
   fn: import { processSessionResults } from "@src/server/resultsManager/actions.js",
   entities: [RawSearchResult, ProcessedResult, DuplicateRelationship]
@@ -432,39 +421,38 @@ action processSessionResults {
 ```
 
 **Requirements:**
-- Basic result processing and normalization (occurs server-side after SERP execution).
-- Simple URL normalization (for consistency, not for deduplication).
-- Basic metadata extraction (domain, file type).
-- Display of processed results on the `Results Overview Page`, including filtering and sorting.
-- Result preview interface on the `Results Overview Page`.
-- Storage of search engine source for each result.
-- This page is accessed after the `Search Execution Status Page` indicates completion of SERP execution and initial processing.
+*   Backend processing of `RawSearchResult` to `ProcessedResult` (normalization, basic metadata extraction). This is largely a server-side operation post-SERP execution.
+*   Display of processed results on the `Results Overview Page` (`/results-overview/:sessionId`).
+*   `Results Overview Page` supports filtering (e.g., by tag status after review starts) and sorting.
+*   Provides a preview/details of individual results, linking to the `Review Interface Page`.
+*   This page is accessed after the `Search Execution Status Page` indicates completion of SERP execution and initial results processing.
 
 **Extension points for Phase 2:**
-- Multi-stage deduplication pipeline
-- Advanced metadata extraction
-- Manual duplicate management
-- Advanced filtering and categorization
-- Full-text search within results
+*   Multi-stage deduplication pipeline.
+*   Advanced metadata extraction.
+*   Dedicated Admin UIs (`Deduplication Overview Page`, `Processing Status Dashboard Page`).
+*   Full-text search within results.
 
-### 5. Review Results
+### 5. Results Review (`ResultsOverviewPage`, `ReviewInterfacePage`)
 
 **Phase 1 Implementation:**
 
 ```wasp
-route ReviewRoute { path: "/review/:sessionId", to: ReviewPage }
-page ReviewPage {
+// ResultsOverviewPage and its query are defined under Results Management
+// ReviewInterfacePage for detailed single result review
+route ReviewInterfaceRoute { path: "/review/:resultId", to: ReviewInterfacePage }
+page ReviewInterfacePage {
   authRequired: true,
-  component: import { ReviewPage } from "@src/client/reviewResults/pages/ReviewPage"
+  component: import { ReviewInterfacePage } from "@src/client/reviewResults/pages/ReviewInterfacePage"
 }
 
-query getReviewTags {
-  fn: import { getReviewTags } from "@src/server/reviewResults/queries.js",
+query getReviewTagsForSession {
+  fn: import { getReviewTagsForSession } from "@src/server/reviewResults/queries.js",
   entities: [ReviewTag]
 }
 
-query getResultsWithTags {
-  fn: import { getResultsWithTags } from "@src/server/reviewResults/queries.js",
+query getSingleProcessedResultDetails { // For ReviewInterfacePage
+  fn: import { getSingleProcessedResultDetails } from "@src/server/reviewResults/queries.js",
   entities: [ProcessedResult, ReviewTagAssignment, ReviewTag, Note]
 }
 
@@ -473,33 +461,31 @@ action createReviewTag {
   entities: [ReviewTag]
 }
 
-action assignTag {
-  fn: import { assignTag } from "@src/server/reviewResults/actions.js",
+action assignTagToResult {
+  fn: import { assignTagToResult } from "@src/server/reviewResults/actions.js",
   entities: [ReviewTagAssignment]
 }
 
-action createNote {
-  fn: import { createNote } from "@src/server/reviewResults/actions.js",
+action createNoteForResult {
+  fn: import { createNoteForResult } from "@src/server/reviewResults/actions.js",
   entities: [Note]
 }
 ```
 
 **Requirements:**
-- Basic inclusion/exclusion tagging
-- Simple notes system
-- Basic filtering
-- Progress tracking
-- PRISMA-compliant workflow
+*   `Results Overview Page`: Lists processed results, allows filtering/sorting, shows review progress, and links to detailed review.
+*   `Review Interface Page` (`/review/:resultId`): Allows basic inclusion/exclusion tagging (Include, Exclude, Maybe) for a single result.
+*   Requires exclusion reason when tagging as "Exclude".
+*   Simple notes system per result on the `Review Interface Page`.
+*   PRISMA-compliant workflow (tagging supports screening/eligibility stages).
 
 **Extension points for Phase 2:**
-- Advanced tagging system
-- Multi-reviewer support
-- Conflict resolution
-- Annotation tools
-- Bulk operations
-- Review analytics
+*   Advanced/custom tagging system.
+*   Multi-reviewer support, conflict resolution.
+*   Full-text annotation tools on `Review Interface Page`.
+*   Bulk operations, review analytics.
 
-### 6. Reporting & Export
+### 6. Reporting & Export (`ReportingPage`)
 
 **Phase 1 Implementation:**
 
@@ -510,29 +496,26 @@ page ReportingPage {
   component: import { ReportingPage } from "@src/client/reporting/pages/ReportingPage"
 }
 
-query getReportData {
-  fn: import { getReportData } from "@src/server/reporting/queries.js",
-  entities: [SearchSession, ProcessedResult, ReviewTagAssignment, ReviewTag]
+query getReportDataForSession {
+  fn: import { getReportDataForSession } from "@src/server/reporting/queries.js",
+  entities: [SearchSession, ProcessedResult, ReviewTagAssignment, ReviewTag, SearchQuery, SearchExecution]
 }
 
-action exportResults {
-  fn: import { exportResults } from "@src/server/reporting/actions.js"
+action exportSessionResults {
+  fn: import { exportSessionResults } from "@src/server/reporting/actions.js"
 }
 ```
 
 **Requirements:**
-- Basic PRISMA flow diagram
-- Simple report generation
-- CSV and JSON export
-- Basic statistics
+*   Basic PRISMA flow diagram data generation for display on `Reporting Page`.
+*   Simple report generation showing key statistics and search parameters.
+*   CSV and JSON export of included/excluded results lists.
 
 **Extension points for Phase 2:**
-- Advanced PRISMA visualizations
-- Custom report templates
-- PDF export
-- Interactive dashboards
-- Extended analytics
-- Reference management integration
+*   Advanced PRISMA visualizations.
+*   Custom report templates, PDF export.
+*   Interactive dashboards, extended analytics.
+*   Reference management integration.
 
 ## API Implementation Strategy
 
@@ -545,55 +528,26 @@ For each feature, Phase 1 will implement a simplified version of the API that su
 import { executeSearchInBackground } from '../shared/services/googleSearchApi';
 import { HttpError } from 'wasp/server';
 
-export const executeSearchQuery = async ({ queryId, maxResults = 100 }, context) => {
-  if (!context.user) {
-    throw new HttpError(401, "Unauthorized");
-  }
+export const executeSearchQueriesForSession = async ({ sessionId }, context) => {
+  if (!context.user) { throw new HttpError(401, "Unauthorized"); }
+  const session = await context.entities.SearchSession.findUnique({ where: { id: sessionId }, include: { searchQueries: true } });
+  if (!session || session.userId !== context.user.id) { throw new HttpError(403, "Access Denied"); }
 
-  try {
-    // Fetch the query
-    const query = await context.entities.SearchQuery.findUnique({
-      where: { id: queryId },
-      include: { searchSession: true } // Ensures searchSession is loaded to get sessionId
-    });
-    
-    if (!query) {
-      throw new HttpError(404, 'Query not found');
-    }
-    
-    if (query.searchSession.userId !== context.user.id) {
-      throw new HttpError(403, "User not authorized for this session's query");
-    }
-    
-    // Create execution record
+  for (const query of session.searchQueries) {
     const execution = await context.entities.SearchExecution.create({
-      data: {
-        queryId: query.id,
-        sessionId: query.sessionId, // Ensure query.sessionId is available and correct
-        status: 'running', // Initial status for the Search Execution Status Page
-        startTime: new Date()
-        // resultCount will be updated upon completion
-      }
+      data: { queryId: query.id, sessionId: session.id, status: 'pending', startTime: new Date() }
     });
-    
-    // Execute search (single API only in Phase 1)
-    // Use Google Search API via Serper
-    // This function should not block; it should run in the background.
-    // The client will poll or use other mechanisms to get status updates from SearchExecution entity.
-    executeSearchInBackground(context.entities, execution.id, query, maxResults);
-    
-    return {
-      executionId: execution.id,
-      queryId: query.id,
-      status: 'running', // Return initial status
-      startTime: execution.startTime
-    };
-  } catch (error) {
-    console.error('Error executing query:', error);
-    // Potentially update SearchExecution to 'failed' here if synchronous error before backgrounding
-    throw new HttpError(500, 'An unexpected error occurred during search initiation');
+    // Trigger background job for individual query execution, e.g.:
+    // _executeSingleSearchQueryJob.performAsync({ executionId: execution.id, queryText: query.query, maxResults: query.maxResults });
   }
+  return { message: `Search execution started for session ${sessionId}` };
 };
+
+// The _executeSingleSearchQueryJob (not shown) would then call the actual API (e.g., Google Search via Serper),
+// create RawSearchResult records, and update the SearchExecution status to 'running', 'completed', or 'failed'.
+
+// src/shared/services/googleSearchApi.js (Conceptual update for executeSearchQueriesForSession)
+// ... existing code ...
 ```
 
 ```typescript

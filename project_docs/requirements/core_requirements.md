@@ -9,6 +9,17 @@
 - REQ-FR-AUTH-4: System must implement JWT-based authentication
 - REQ-FR-AUTH-5: System must implement basic role-based permissions (Researcher role)
 
+### Review Manager
+- REQ-FR-RM-1: System must provide a central Review Manager Dashboard as the landing page after authentication
+- REQ-FR-RM-2: System must display all review sessions owned by the user
+- REQ-FR-RM-3: System must categorize reviews by status (Draft, In Progress, Completed)
+- REQ-FR-RM-4: System must provide appropriate navigation based on review status:
+  - Draft reviews -> Search Strategy Page
+  - Executing reviews -> Search Execution Status Page
+  - Completed reviews -> Results Overview Page
+- REQ-FR-RM-5: System must support basic review session management (create, view, delete)
+- REQ-FR-RM-6: System must display key review metadata (name, creation date, status, progress)
+
 ### Search Strategy Builder
 - REQ-FR-SSB-1: System must allow users to create and manage search sessions
 - REQ-FR-SSB-2: System must support basic concept grouping using the PIC framework (Population, Interest, Context)

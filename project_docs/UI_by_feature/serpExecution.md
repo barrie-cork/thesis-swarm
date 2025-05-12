@@ -1,88 +1,104 @@
-# SERP Execution Feature: UX and UI Implementation Plan
+# Search Execution Feature: UX and UI Implementation Plan
+
+---
+**Phase:** Both (Core execution/status in Phase 1, consolidated status/multi-API in Phase 2)
+---
 
 ## Overview
 
-The SERP (Search Engine Results Page) Execution feature enables users to execute search queries across selected search engines via external APIs and manage the results. This implementation plan outlines a streamlined interface for configuring, executing, and monitoring search operations with clear feedback on progress and results. The design focuses on providing users with control over their search parameters while maintaining transparency about search execution status and outcomes.
+The Search Execution feature handles the process of running the defined search strategies against external APIs (initially Google Search via Serper) and monitoring the progress. The `Search Execution Status Page` can be accessed either from the Review Manager Dashboard (for reviews in the executing state) or automatically after initiating execution from the `Search Strategy Page`. Phase 1 focuses on executing the search and displaying SERP query progress. Phase 2 enhances this page to show consolidated status including subsequent results processing and adds multi-API support.
 
 ## Core Requirements
 
-This section outlines the core functional and technical requirements for the SERP Execution feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
+This section outlines the core functional and technical requirements for the Search Execution feature, stratified by development phase. These requirements are derived from the overall project requirements (`project_docs/requirements/core_requirements.md`) and are specific to this feature's UI/UX implementation.
 
 ### Phase 1 Requirements
 
 #### Functional Requirements
-- **REQ-FR-SERP-1:** System must integrate with the Google Search API via Serper for executing search queries.
-- **REQ-FR-SERP-2:** System must handle basic pagination of search results fetched from the API.
-- **REQ-FR-SERP-3:** System must provide a `Search Execution Status Page` (or a `Search Execution Dashboard` with status indicators) that displays simple progress tracking for search execution (e.g., number of queries remaining, basic progress bar).
-- **REQ-FR-SERP-4:** System must store raw search results (`RawSearchResult` entity) retrieved from the API.
-- **REQ-FR-SERP-5:** System must implement basic error handling for search execution, displaying informative messages to the user if an API call fails or a query cannot be executed.
-- **REQ-FR-SERP-6:** System must allow users to specify the maximum number of search results to retrieve per query (as defined in `REQ-FR-SSB-7`).
-- **REQ-FR-SERP-7:** Upon completion of SERP query execution and initial backend processing (by Results Manager), the user should be transitioned from the `Search Execution Status Page` to the `Results Overview Page`.
+- **REQ-FR-SERP-1:** Integrate with Google Search API (Serper).
+- **REQ-FR-SERP-2:** Handle result pagination from API.
+- **REQ-FR-SERP-3:** Provide a `Search Execution Status Page` (`/search-execution/:sessionId`) displaying simple progress for SERP query execution (e.g., number of queries complete/remaining).
+- **REQ-FR-SERP-4:** Store raw results (`RawSearchResult` entity).
+- **REQ-FR-SERP-5:** Implement basic error handling and display messages on the status page.
+- **REQ-FR-SERP-6:** Respect max results parameter from the strategy.
+- **REQ-FR-SERP-7:** Transition from `Search Execution Status Page` to `Results Overview Page` upon completion of SERP execution *and* initial backend processing (signaled by Results Manager).
 
 #### Technical Requirements
-- **REQ-TR-SERP-1:** API integration with Serper must be robust, handling API keys securely and respecting rate limits.
-- **REQ-TR-SERP-2:** Search execution should be performed asynchronously (background job) to avoid blocking the UI, with status updates reflected in the `SearchExecution` entity.
-- **REQ-TR-SERP-3:** Raw results must be correctly mapped and stored in the `RawSearchResult` entity, associated with the correct `SearchQuery` and `SearchExecution`.
+- **REQ-TR-SERP-1:** Robust API integration (keys, rate limits).
+- **REQ-TR-SERP-2:** Asynchronous execution (background job), updating `SearchExecution` status.
+- **REQ-TR-SERP-3:** Store raw results correctly in `RawSearchResult`.
 
 ### Phase 2 Requirements (Enhancements)
 
 #### Functional Requirements
-- **REQ-FR-SERP-P2-1:** System must support executing searches across multiple APIs (Google Search, Bing, PubMed, DuckDuckGo) configurable by the user.
-- **REQ-FR-SERP-P2-2:** System must provide advanced rate limiting and quota management across multiple APIs.
-- **REQ-FR-SERP-P2-3:** System should support parallel execution of queries across different search engines where feasible.
-- **REQ-FR-SERP-P2-4:** The `Search Execution Status Page` must provide a consolidated, real-time view of both SERP query execution progress (from this feature) AND subsequent results processing stages (from `Results Manager` feature), including normalization, metadata extraction, and deduplication progress.
-- **REQ-FR-SERP-P2-5:** System may allow scheduling of search executions.
-- **REQ-FR-SERP-P2-6:** System should provide more robust error recovery mechanisms for API failures.
-- **REQ-FR-SERP-P2-7:** UI should allow configuration of API-specific parameters if necessary.
+- **REQ-FR-SERP-P2-1:** Support multiple search APIs (Google, Bing, PubMed, etc.).
+- **REQ-FR-SERP-P2-2:** Advanced rate limiting/quota management.
+- **REQ-FR-SERP-P2-3:** Parallel execution support.
+- **REQ-FR-SERP-P2-4:** Enhance `Search Execution Status Page` to show consolidated real-time status for **both** SERP query execution (this feature) **and** subsequent results processing stages (normalization, deduplication, etc., from `Results Manager` feature).
+- **REQ-FR-SERP-P2-5:** Scheduling capabilities.
+- **REQ-FR-SERP-P2-6:** Robust error recovery.
+- **REQ-FR-SERP-P2-7:** API-specific parameter configuration (linked from `Search Strategy Page`).
 
 #### Technical Requirements
-- **REQ-TR-SERP-P2-1:** Multi-API integration will require a flexible adapter pattern for different search providers.
-- **REQ-TR-SERP-P2-2:** The consolidated `Search Execution Status Page` will require robust communication or shared state/event mechanisms to display progress from both SERP execution and Results Manager processing pipelines.
-- **REQ-TR-SERP-P2-3:** Background job processing (e.g., using Bull or similar) will be essential for managing scheduled and parallel executions.
-- **REQ-TR-SERP-P2-4:** Secure management of multiple API keys will be required.
+- **REQ-TR-SERP-P2-1:** Flexible adapter pattern for multi-API.
+- **REQ-TR-SERP-P2-2:** Consolidated status page requires robust communication/shared state between SERP execution and Results Manager pipelines.
+- **REQ-TR-SERP-P2-3:** Background job system for scheduling/parallelism.
+- **REQ-TR-SERP-P2-4:** Secure multi-API key management.
 
 ## Phase 1 Implementation
 
-### 1. SERP Execution Feature Structure
+---
+**Phase:** Phase 1
+---
 
-#### Pages & Screens:
+### 1. Search Execution Feature Structure
 
-* **Search Execution Dashboard:**
-  * Primary interface for executing searches within a search session
-  * Accessed from the Search Strategy Builder after query creation
-  * Displays existing search queries with their execution status
-  * Provides controls for executing new searches and monitoring progress
+#### Standard Pages & Components:
 
-* **Execute Search Panel:**
-  * Configuration panel for executing a search query
-  * Search engine selection controls
-  * Result count limitations
-  * Execution parameters (date restrictions, language filters)
-  * Progress indicators during execution
+*   **Search Execution Status Page (`/search-execution/:sessionId`):**
+    *   Displays the status of SERP query execution for the given session.
+    *   Accessed either:
+        - From the Review Manager Dashboard for reviews in the executing state
+        - Automatically after initiating execution from the `Search Strategy Page`
+    *   Shows progress indicators (e.g., queries completed/total, basic progress bar).
+    *   Displays status messages (Running, Completed, Failed).
+    *   Provides navigation back to the Review Manager Dashboard or `Search Strategy Page` (if needed) and forward to the `Results Overview Page` (once ready).
+*   **Status Indicator (Component):** Displays progress bars, status text, error messages.
 
-* **Search Results Preview Panel:**
-  * Quick overview of retrieved search results
-  * Summary statistics (total results, by source)
-  * Execution timestamp and duration
-  * Status indicators (completed, partial, failed)
+#### Workflow & Transitions:
 
-* **Search Execution History Panel:**
-  * Log of previous search executions for the current query
-  * Execution timestamps and result counts
-  * Status of each historical execution
-  * Option to compare results across executions
+**Workflow (Execution & Status):**
 
-#### Transitions & Interactions:
+1.  User accesses the page either:
+    - By clicking on an executing review from the Review Manager Dashboard
+    - By clicking "Execute Searches" on the `Search Strategy Page`
+2.  The page displays the real-time progress of SERP queries being executed against the external API.
+3.  Status indicators update (e.g., progress bar, text messages like "Running query 5 of 10...").
+4.  If API errors occur, they are displayed.
+5.  Once *all* SERP queries are complete, the status might indicate "Processing results..." (awaiting signal from Results Manager).
+6.  When Results Manager confirms initial processing is done, the status updates to "Complete" and a button/link to navigate to the `Results Overview Page` becomes active/prominent.
 
-* **Search Strategy Builder → Search Execution Dashboard:** Navigate from strategy building to execution phase
-* **Select Query → Execute Search Panel:** Configure execution parameters for selected query
-* **Execute Search → Progress Monitoring:** Real-time feedback during search execution
-* **Search Completion → Results Preview:** Automatic transition to results overview upon completion
-* **Results Preview → Results Manager:** Option to proceed to full results management interface
+*(Refer to `workflow.mmd` for the visual flow.)*
+
+**Navigation:**
+
+*   **Access Status Page:** 
+    - From Review Manager Dashboard -> `/search-execution/:sessionId` (for executing reviews)
+    - From `/search-strategy/:sessionId` (on execute) -> `/search-execution/:sessionId`
+*   **From Status Page:** 
+    - -> `/results-overview/:sessionId` (once complete)
+    - -> `/review-manager` (cancel/back)
+
+#### Role-Based Access (Phase 1):
+
+*   Users who can execute searches (`Researcher`, `Admin`) will trigger navigation to this page.
+*   All users with access to the session can likely view the status page to monitor progress.
+
+*(Refer to `project_docs/standards/role_access_matrix.md` for full details.)*
 
 ### 2. UI Components
 
-#### Search Execution Dashboard Layout
+#### Search Execution Status Page Layout
 
 * **Header Section:**
   * Session title and description
@@ -109,7 +125,7 @@ This section outlines the core functional and technical requirements for the SER
   * Timestamp of most recent execution
   * Quick navigation to full results view
 
-#### Execution Status Indicators
+#### Execution Status Indicators (Component)
 
 * **Progress Indicators:**
   * Overall progress bar for multi-engine searches
@@ -173,7 +189,7 @@ This section outlines the core functional and technical requirements for the SER
 
 ### 4. Visual Design and Styling Guidelines
 
-This section details the specific visual styling for the SERP Execution feature, drawing from the global Thesis Grey UI/UX Style Guide.
+This section details the specific visual styling for the Search Execution feature, drawing from the global Thesis Grey UI/UX Style Guide.
 
 #### 4.1. General Colour System (from Style Guide)
 
@@ -196,7 +212,7 @@ This section details the specific visual styling for the SERP Execution feature,
 *   **Parameter Labels:** 14px, Medium weight, Dark Charcoal (`#3C3F41`) in light mode, Light Taupe (`#CEC9BC`) in dark mode.
 *   **Result Counts:** 16px, Semi-bold, Dark Charcoal (`#3C3F41`) in light mode, White (`#FFFFFF`) in dark mode.
 
-#### 4.3. Component Styling for SERP Execution
+#### 4.3. Component Styling for Search Execution
 
 ##### Execution Controls
 
@@ -281,82 +297,46 @@ This section details the specific visual styling for the SERP Execution feature,
 
 ## Phase 2 Enhancements
 
-### 1. Advanced Search Configuration
+---
+**Phase:** Phase 2
+---
 
-* **Search Template Management:**
-  * Save and reuse search parameter combinations
-  * Template library with organization-wide sharing
-  * Quick application of templates to new searches
-  * Template versioning and history
+(Enhancements focus on multi-API support via the `Search Strategy Page` and enriching the `Search Execution Status Page` to show consolidated progress.)
 
-* **Advanced Engine Parameters:**
-  * Engine-specific advanced configuration
-  * Expert mode for direct API parameter access
-  * Query transformation preview
-  * Search syntax highlighting and validation
+### 1. Consolidated Status View (`Search Execution Status Page`)
 
-* **Scheduling and Automation:**
-  * Schedule recurring searches
-  * Time-based execution with configurable frequency
-  * Notification options for completed scheduled searches
-  * Batch execution of multiple queries
+*   **Enhanced Layout:** The page now displays progress for *both* SERP execution *and* subsequent Results Manager processing stages.
+*   **Dual Progress Tracking:** May show separate progress indicators/checklists for:
+    *   SERP API Calls (e.g., Google Query 1..N, Bing Query 1..N).
+    *   Results Manager Pipeline (e.g., Normalization, Metadata Extraction, Deduplication).
+*   **Real-time Updates:** Leverages communication mechanism (WebSockets, polling) to get updates from both backend processes.
+*   **Clear Final Transition:** Navigation to `Results Overview Page` enabled only after *all* steps (SERP + Processing) are complete.
 
-### 2. Enhanced Monitoring and Analytics
+### 2. Multi-API Support
+*   Configuration happens on `Search Strategy Page`.
+*   `Search Execution Status Page` adapts to show progress for all selected APIs (e.g., separate sections or combined progress).
 
-* **Real-time Search Analytics:**
-  * Detailed performance metrics during execution
-  * Time-per-result tracking
-  * API efficiency statistics
-  * Cost estimation for commercial APIs
+### 3. Advanced Monitoring & Scheduling
+*   Scheduling configured elsewhere (e.g., Strategy Page or Admin Panel).
+*   Status page might show status for scheduled/recurring runs.
+*   Advanced analytics might be linked from here.
 
-* **Comparative Result Analysis:**
-  * Side-by-side comparison of execution results
-  * Highlight new or changed results between executions
-  * Trend analysis for recurring searches
-  * Source quality metrics
+### 4. Collaborative Execution
+*   Status page might show who initiated the run.
+*   Permissions (e.g., canceling) may be role-based.
 
-* **Advanced Visualization:**
-  * Interactive charts for result distribution
-  * Geographic visualization of result sources
-  * Timeline view of historical executions
-  * Resource usage graphs
+## Implementation Guidelines
 
-### 3. Multi-API Integration Enhancements
-
-* **API Key Management:**
-  * Secure storage of multiple API credentials
-  * Usage tracking against quotas and limits
-  * Automatic rotation of keys for load balancing
-  * Credential sharing within organizations
-
-* **Provider-specific Optimizations:**
-  * Customized execution strategies by provider
-  * Provider-specific result parsing
-  * Specialized filters for individual engines
-  * Custom request throttling based on provider limits
-
-* **Custom API Integration:**
-  * Framework for adding custom search providers
-  * API response mapping interface
-  * Custom authentication flow support
-  * Testing tools for new integrations
-
-### 4. Collaborative Execution Features
-
-* **Shared Execution Monitoring:**
-  * Real-time collaborative search monitoring
-  * Team member presence indicators
-  * Chat/comment system during execution
-  * Role-based execution permissions
-
-* **Execution Approval Workflow:**
-  * Multi-stage approval for resource-intensive searches
-  * Review interface for search parameters
-  * Approval tracking and audit logs
-  * Execution request system with notifications
-
-* **Team Analytics Dashboard:**
-  * Team-wide search activity metrics
-  * Resource usage by team member
-  * Collaborative efficiency statistics
-  * Search quality benchmarks 
+*   **Background Jobs:** Ensure robust background job system for handling asynchronous operations.
+*   **Status Communication:** Leverage WebSockets or polling mechanisms for real-time updates.
+*   **Error Handling:** Implement robust error handling mechanisms to manage API failures and user notifications.
+*   **Security:** Secure multi-API key management and access control.
+*   **Scalability:** Design for horizontal scalability to handle increased load and API integrations.
+*   **User Experience:** Focus on clear, intuitive user interface for monitoring progress and managing executions.
+*   **Analytics:** Integrate advanced analytics capabilities for performance tracking and optimization.
+*   **Scheduling:** Implement flexible scheduling options for recurring searches and batch executions.
+*   **Collaboration:** Facilitate collaborative search monitoring and team communication.
+*   **Role-Based Access:** Ensure role-based access control for managing execution permissions and access.
+*   **Testing:** Conduct thorough testing to validate feature functionality and performance under various scenarios.
+*   **Documentation:** Provide comprehensive documentation for feature implementation and usage guidelines.
+*   **User Feedback:** Collect and incorporate user feedback for continuous improvement and feature enhancements. 

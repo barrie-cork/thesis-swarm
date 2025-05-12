@@ -1,8 +1,12 @@
-# Search Strategy Builder Feature: UX and UI Implementation Plan
+# Search Strategy Page Feature: UX and UI Implementation Plan
+
+---
+**Phase:** Both (Core functionality in Phase 1, advanced query building in Phase 2)
+---
 
 ## Overview
 
-The Search Strategy Builder feature enables researchers to create, refine, and execute structured search strategies for systematic reviews. This implementation plan outlines a comprehensive approach for building an intuitive, powerful interface that guides users through the process of constructing effective search queries using the PIC (Population, Interest, Context) framework whilst providing immediate feedback and query previews.
+The `Search Strategy Page` enables researchers to create, refine, and manage structured search strategies for `SearchSession` entities. This page is accessed from the Review Manager Dashboard when creating a new review or accessing a draft review. This plan outlines the UI/UX for constructing effective search queries using the PIC framework, configuring search parameters, and initiating search execution.
 
 ## Core Requirements
 
@@ -11,78 +15,97 @@ This section outlines the core functional and technical requirements for the Sea
 ### Phase 1 Requirements
 
 #### Functional Requirements
-- **REQ-FR-SSB-1:** System must allow users to create and manage search sessions, including naming and describing them.
-- **REQ-FR-SSB-2:** System must support basic concept grouping using the PIC framework (Population, Interest, Context) where users can input terms for each category.
-- **REQ-FR-SSB-3:** System must allow domain selection/URL filtering for searches (e.g., restricting search to specific websites).
-- **REQ-FR-SSB-4:** System must support basic file type filtering (e.g., PDF, DOC).
-- **REQ-FR-SSB-5:** System must provide simple query generation based on PIC inputs and filters, forming a boolean query (AND between PIC categories, OR within terms of a category).
-- **REQ-FR-SSB-6:** System must offer a real-time query preview that updates as the user modifies terms and filters.
-- **REQ-FR-SSB-7:** Users must be able to specify the maximum number of search results to retrieve per query.
-- **REQ-FR-SSB-8:** Users must be able to save the search strategy (session and queries) without immediate execution.
-- **REQ-FR-SSB-9:** Users must be able to initiate search execution, which then transitions to the `Search Execution Status Page`.
+- **REQ-FR-SSB-1:** The `Search Strategy Page` (`/search-strategy`) allows users to manage `SearchSession` entities (create, name, describe, view list - list view integrated from previous `reviewManager.md` description).
+- **REQ-FR-SSB-2:** Supports PIC framework input for basic concept grouping.
+- **REQ-FR-SSB-3:** Allows domain/URL filtering.
+- **REQ-FR-SSB-4:** Supports basic file type filtering.
+- **REQ-FR-SSB-5:** Generates simple boolean queries (AND between PIC, OR within PIC).
+- **REQ-FR-SSB-6:** Provides real-time query preview.
+- **REQ-FR-SSB-7:** Allows specifying max results per query.
+- **REQ-FR-SSB-8:** Allows saving the strategy (updates `SearchSession` and related `SearchQuery` entities) without execution.
+- **REQ-FR-SSB-9:** Allows initiating search execution, transitioning to the `Search Execution Status Page`.
 
 #### Technical Requirements
-- **REQ-TR-SSB-1:** Search session and query data must be stored and managed via `SearchSession` and `SearchQuery` entities.
-- **REQ-TR-SSB-2:** The query generation logic must correctly translate PIC inputs and filters into valid search engine query strings.
-- **REQ-TR-SSB-3:** The UI must provide clear feedback and validation for inputs.
+- **REQ-TR-SSB-1:** Uses `SearchSession` and `SearchQuery` entities.
+- **REQ-TR-SSB-2:** Query generation logic translates inputs correctly.
+- **REQ-TR-SSB-3:** UI provides clear feedback/validation.
 
 ### Phase 2 Requirements (Enhancements)
 
 #### Functional Requirements
-- **REQ-FR-SSB-P2-1:** System should support advanced concept relationships and operators within the query builder (e.g., NOT, proximity operators if supported by search engines).
-- **REQ-FR-SSB-P2-2:** System may provide AI-assisted query suggestions or term expansion.
-- **REQ-FR-SSB-P2-3:** System must support query history and versioning for search strategies.
-- **REQ-FR-SSB-P2-4:** System may include a visual query builder interface for more complex query construction.
-- **REQ-FR-SSB-P2-5:** System must allow users to save search strategies as templates and create new strategies from these templates.
-- **REQ-FR-SSB-P2-6:** System should integrate with MeSH terms or other relevant ontologies for term suggestion/expansion.
-- **REQ-FR-SSB-P2-7:** System must support configuration for multiple search APIs (Google, Bing, PubMed, etc.) from within the strategy builder.
-- **REQ-FR-SSB-P2-8:** Lead Reviewers should be able to edit the last saved strategy; execution of searches is restricted to Lead Reviewers.
+- **REQ-FR-SSB-P2-1:** Supports advanced operators (NOT, proximity).
+- **REQ-FR-SSB-P2-2:** AI-assisted query suggestions/term expansion.
+- **REQ-FR-SSB-P2-3:** Query history/versioning.
+- **REQ-FR-SSB-P2-4:** Visual query builder interface.
+- **REQ-FR-SSB-P2-5:** Save strategies as templates.
+- **REQ-FR-SSB-P2-6:** MeSH/ontology integration.
+- **REQ-FR-SSB-P2-7:** Configuration for multiple search APIs.
+- **REQ-FR-SSB-P2-8:** Role-based editing/execution (Lead Reviewer edits/executes).
 
 #### Technical Requirements
-- **REQ-TR-SSB-P2-1:** Query versioning and template management will require enhancements to `SearchSession` and `SearchQuery` entities or new related entities.
-- **REQ-TR-SSB-P2-2:** Integration with multiple search APIs will require adaptable query generation logic and parameter handling.
-- **REQ-TR-SSB-P2-3:** Collaborative strategy building features will necessitate real-time updates and conflict management if implemented.
+- **REQ-TR-SSB-P2-1:** Entity enhancements for versioning/templates.
+- **REQ-TR-SSB-P2-2:** Adaptable query generation for multiple APIs.
+- **REQ-TR-SSB-P2-3:** Real-time updates/conflict management for collaboration.
 
 ## Phase 1 Implementation
 
-### 1. Search Strategy Builder Structure
+---
+**Phase:** Phase 1
+---
 
-#### Pages & Screens:
+### 1. Search Strategy Page Structure
 
-* **Strategy Builder Page:**
-  * All-in-one interface for creating and managing search queries for a new or existing review session.
-  * Sections for session naming/description, PIC framework inputs, domain/URL filtering, file type limitations, and search scope selection.
-  * Real-time query preview that updates as users make changes.
-  * Save, edit, and execute controls with clear visual hierarchy.
+#### Standard Pages & Components:
 
-* **Search Execution Status Page (Phase 1):**
-  * Dedicated, persistent page displayed after clicking the "Execute Searches" button.
-  * Features a basic progress bar showing the status of remaining SERP queries being executed.
-  * Transitions to the Results Overview Page upon completion of SERP query execution and initial backend processing.
+*   **Search Strategy Page (`/search-strategy/:sessionId`):**
+    *   Accessed from the Review Manager Dashboard when creating a new review or editing a draft review.
+    *   Provides the builder interface for defining and configuring search strategies.
+    *   Builder sections: Session details (name/description), PIC inputs, Configuration (domains, file types, scope), real-time Query Preview.
+*   **PIC Input Panel (Component):** Dedicated area for P, I, C terms.
+*   **Configuration Panel (Component):** Domain, file type, max results settings.
+*   **Query Preview Panel (Component):** Real-time display of generated query.
 
-* **Concept Input Panels:**
-  * Dedicated input areas for each PIC component (Population, Interest, Context)
-  * Term entry with add/remove functionality
-  * Visual indication of Boolean relationships between terms
-  * Input validation with helpful error messaging
+#### Workflow & Transitions:
 
-* **Configuration Panel:**
-  * Options for domain/URL restrictions
-  * File type limitations (PDF, DOC, etc.)
-  * Search scope additional options (Phase 1: Google Search only)
-  * Search parameters customisation (max results count, etc.)
+**Workflow (Creating/Editing Strategy):**
 
-#### Transitions & Interactions:
+1.  User starts on Review Manager Dashboard (`/review-manager`).
+2.  User clicks "Create New Review" or selects a review with 'Draft' status.
+3.  System navigates to Search Strategy Page (`/search-strategy/:sessionId`).
+4.  The builder interface (PIC, Config, Preview panels) displays for the new/selected review.
+5.  User inputs terms into PIC panels, sets configuration options.
+6.  `Query Preview Panel` updates in real-time.
+7.  User clicks "Save Strategy" (saves session/query data, status remains Draft) or "Execute Searches".
+8.  If "Execute Searches" is clicked:
+    *   Strategy is saved.
+    *   Session status updated to 'Executing'.
+    *   User navigates to `Search Execution Status Page` (`/search-execution/:sessionId`).
 
-* **Review Manager Dashboard → Strategy Builder:** Entry point to create a new search strategy or edit an existing one (if in draft state).
-* **Term Input → Query Preview:** Real-time updates as terms are added/modified.
-* **Strategy Builder → Execute Searches button click → Search Execution Status Page (Phase 1):** Transition after validating and confirming search.
-* **Search Execution Status Page (Phase 1) → Results Overview Page:** Occurs after all SERP queries are executed and initial backend processing is complete.
-* **Strategy Builder → Save Strategy:** Save current strategy for later execution or modification.
+*(Refer to `workflow.mmd` for the visual flow.)*
+
+**Navigation:**
+
+*   **Entry:** From Review Manager Dashboard (`/review-manager`).
+*   **Builder View:** `/search-strategy/:sessionId`.
+*   **Execute:** `/search-strategy/:sessionId` -> `/search-execution/:sessionId`.
+*   **Cancel:** Returns to Review Manager Dashboard.
+
+#### Role-Based Access (Phase 1):
+
+*   **Researcher, Admin:** Can view list, create sessions, edit draft strategies, execute searches.
+*   **User, Reviewer:** Can view list (sessions they have access to), but typically cannot create/edit/execute (permissions vary).
+
+*(Refer to `project_docs/standards/role_access_matrix.md` for full details.)*
 
 ### 2. UI Components
 
-#### Strategy Builder Layout
+#### Search Strategy Page Layout (Combined List & Builder)
+
+*   Layout likely shows session list by default. Selecting/creating session shows builder panels.
+*   Header needs session name/description inputs when in builder mode.
+*   Action buttons (Save, Execute) appear in builder mode.
+
+#### PIC Framework Section / Term Input / Configuration Section / Query Preview Panel / Action Controls
 
 * **Header Section:**
   * Session name input (required)
@@ -247,6 +270,12 @@ This section details the specific visual styling for the Search Strategy Builder
 
 ## Phase 2 Enhancements
 
+---
+**Phase:** Phase 2
+---
+
+(Enhancements add advanced query features, templates, collaboration, and multi-API support to the `Search Strategy Page` builder view. Role restrictions on editing/execution apply.)
+
 ### 1. Advanced Query Building
 
 #### Visual Query Builder
@@ -381,14 +410,9 @@ This section details the specific visual styling for the Search Strategy Builder
 
 ### 6. Phase 2 Transitions & Interactions
 
-* **Session Hub Page (Lead Reviewer) → Strategy Builder:** Allows Lead Reviewer to return to the `Search Strategy Builder` to edit the last saved strategy. The builder loads the strategy as it was before any previous execution.
-* **Strategy Builder → Execute Searches button click (Lead Reviewer Only) → Search Execution Status Page (Phase 2):** Transition after validating and confirming search. Only Lead Reviewers can execute/re-execute searches.
-* **Search Execution Status Page (Phase 2):**
-    * This enhanced, single page displays consolidated real-time status for:
-        *   SERP query execution (progress bar, streaming text, stages ticked off – data from `SERP Execution` feature).
-        *   Results processing stages (normalization, metadata extraction, deduplication progress, etc. – progress bar, streaming text, stages ticked off – data from `Results Manager` feature).
-    *   The UI for this consolidated status page is handled by the `SERP Execution` feature.
-* **Search Execution Status Page (Phase 2) → Results Overview Page:** Occurs after all SERP execution and results processing are complete.
+*   **Session Hub Page (Lead Reviewer) → Search Strategy Page:** Allows Lead Reviewer to navigate back to the builder view for the specific session to edit the strategy.
+*   **Search Strategy Page → Execute Searches button click (Lead Reviewer Only):** Saves strategy, updates status, navigates to the **consolidated** `Search Execution Status Page` (as defined in `serpExecution.md` UI plan) which shows both SERP execution *and* results processing status.
+*   **Consolidated Search Execution Status Page → Results Overview Page:** Navigation occurs after *all* execution and processing steps shown on the status page are complete.
 
 ## Implementation Guidelines
 

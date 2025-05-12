@@ -1,6 +1,6 @@
 # Leveraging Wasp Framework Features
 
-**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/architecture/workflow.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
+**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/mermaid.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
 
 ## Overview
 
@@ -14,7 +14,7 @@ The `main.wasp` file serves as the central configuration for the entire applicat
 
 - Application metadata and settings
 - Entity (database model) definitions
-- Routes and pages with authentication requirements. **This includes routes and page definitions for key workflow stages such as the `Review Manager Dashboard`, `Search Strategy Builder`, `Search Execution Status Page`, `Results Overview Page`, and in Phase 2, the `Session Hub Page` and specialized Lead Reviewer UIs within `Results Manager`.**
+- Routes and pages with authentication requirements. **This includes routes and page definitions for key workflow stages such as the `Search Strategy Page` (for session listing and strategy building), `Search Execution Status Page`, `Results Overview Page`, `Review Interface Page`, `Reporting Page`, and in Phase 2, the `Session Hub Page` and specialized Lead Reviewer UIs like `Deduplication Overview Page` and `Processing Status Dashboard Page`.**
 - Client-server operations (queries and actions)
 
 This declarative approach eliminates the need for manual configuration of routing, authentication flows, and database connections.
@@ -24,31 +24,38 @@ This declarative approach eliminates the need for manual configuration of routin
 Rather than building a custom authentication system, we leverage Wasp's built-in auth:
 
 ```wasp
-auth: {
-  userEntity: User,
-  methods: {
-    usernameAndPassword: {},
-  },
-  onAuthFailedRedirectTo: "/login"
+app ThesisGrey {
+  // ...
+  auth: {
+    userEntity: User,
+    methods: {
+      usernameAndPassword: {},
+    },
+    onAuthFailedRedirectTo: "/login",
+    onAuthSucceededRedirectTo: "/search-strategy" // Default P1 landing page
+  }
+  // ...
 }
 ```
 
 This provides:
 - JWT token management
-- User registration and login flows
+- User registration (`SignupPage`) and login (`LoginPage`) flows
 - Session handling
-- Protected routes with the `authRequired: true` property. **This core authentication is the foundation upon which Thesis Grey's Phase 2 Role-Based Access Control (RBAC) is built. While Wasp handles the basic authentication, application-level logic within operations and components uses the authenticated user's context to determine their role within a specific review session, thereby controlling access to features and data on pages like the `Session Hub Page` or administrative interfaces like the `Deduplication Overview` in the Results Manager.**
+- Protected routes with the `authRequired: true` property. **This core authentication is the foundation upon which Thesis Grey's Phase 2 Role-Based Access Control (RBAC) is built. While Wasp handles the basic authentication, application-level logic within operations and components uses the authenticated user's context (and potentially session-specific role data) to determine their capabilities, thereby controlling access to features and data on pages like the Phase 2 `Session Hub Page` or administrative interfaces like the `Deduplication Overview Page`.**
 
 ### 3. Operation System (Queries & Actions)
 
 Wasp's operations system provides a standardized approach to client-server communication:
 
 ```wasp
+// Example for fetching search sessions for the Search Strategy Page
 query getSearchSessions {
   fn: import { getSearchSessions } from "@src/server/searchStrategy/queries.js",
   entities: [SearchSession]
 }
 
+// Example for creating a new search session from the Search Strategy Page
 action createSearchSession {
   fn: import { createSearchSession } from "@src/server/searchStrategy/actions.js",
   entities: [SearchSession]
@@ -58,7 +65,7 @@ action createSearchSession {
 Benefits:
 - Type-safe client-server communication
 - Automatic data fetching and caching via React Query
-- Entity-based access control. **Wasp operations are central to fetching data for new workflow pages (e.g., progress data for the `Search Execution Status Page`, or aggregated session information for the `Session Hub Page`) and performing role-aware actions based on the authenticated user.**
+- Entity-based access control. **Wasp operations are central to fetching data for all workflow pages (e.g., progress data for the `Search Execution Status Page`, session data for the `Search Strategy Page`, or aggregated information for the Phase 2 `Session Hub Page`) and performing role-aware actions based on the authenticated user.**
 - Optimistic UI updates
 
 ### 4. Error Handling
@@ -99,17 +106,20 @@ Benefits:
 Each feature follows a vertical slice architecture pattern:
 
 ```
-feature/
+src/
 ├── client/
-│   ├── components/     # React components
-│   └── pages/          # Page components
+│   ├── {featureName}/
+│   │   ├── components/     # React components
+│   │   └── pages/          # Page components (e.g., SearchStrategyPage.tsx)
+│   └── shared/             # Shared components like MainLayout.tsx
 └── server/
-    ├── actions.js      # Write operations
-    └── queries.js      # Read operations
+    └── {featureName}/
+        ├── actions.js      # Write operations
+        └── queries.js      # Read operations
 ```
 
 This organization:
-- Groups related code together (e.g., all client and server logic for the `serpExecution` feature, including its `SearchExecutionStatusPage.tsx` and related components, resides within `src/client/serpExecution/` and `src/server/serpExecution/`). **Similarly, the Phase 2 `Session Hub Page` and its logic would typically reside within the `reviewManager` feature's directories.**
+- Groups related code together (e.g., all client and server logic for the `serpExecution` feature, including its `SearchExecutionStatusPage.tsx` and related components, resides within `src/client/serpExecution/` and `src/server/serpExecution/`). **Similarly, the Phase 2 `Session Hub Page` and its logic would typically reside within a dedicated `sessionHub` feature's directories or be part of an expanded `searchStrategy` or a new `reviewCollaboration` feature.**
 - Minimizes cross-feature dependencies
 - Makes features easier to understand and maintain
 
@@ -119,17 +129,18 @@ Authentication leverages Wasp's built-in system:
 
 ```tsx
 // Page definition in main.wasp (Example for Phase 2 Session Hub Page)
-page SessionHubPage {
+page SessionHubPage { // Path might be /session/:sessionId/hub
   authRequired: true,
-  component: import { SessionHubPage } from "@src/client/reviewManager/pages/SessionHubPage"
+  component: import { SessionHubPage } from "@src/client/sessionHub/pages/SessionHubPage"
 }
 
 // Client-side usage
 import { useAuth } from 'wasp/client/auth';
 
-function SessionHubPage() {
+function SomeAuthenticatedPage() {
   const { data: user } = useAuth();
-  // ...
+  if (!user) return <div>Not authenticated</div>;
+  // ... page content for authenticated user ...
 }
 ```
 
@@ -213,11 +224,12 @@ const token = jwt.sign({ userId: user.id }, config.auth.jwtSecret, {
 });
 ```
 
-After (using Wasp's auth):
+After (using Wasp's auth for login/signup forms on `LoginPage`/`SignupPage`):
 ```tsx
+// src/client/auth/pages/LoginPage.tsx
 import { LoginForm } from 'wasp/client/auth';
-
-function LoginPage() {
+// ... other layout ...
+export function LoginPage() {
   return <LoginForm />;
 }
 ```

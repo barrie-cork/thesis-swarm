@@ -11,10 +11,10 @@ Thesis Grey organizes code by feature rather than by technical layer, with each 
 Each feature follows a standardized internal structure:
 
 ```
-feature/
-├── pages/           # Page components that correspond to routes
-├── components/      # UI components specific to this feature
-├── hooks/           # Custom React hooks for this feature
+src/client/{featureName}/
+├── pages/           # Page components that correspond to routes (e.g., SearchStrategyPage.tsx)
+├── components/      # UI components specific to this feature (e.g., SearchSessionCard.tsx)
+├── hooks/           # Custom React hooks for this feature (e.g., useSearchSessions.ts)
 ├── utils/           # Utility functions specific to this feature
 └── types.ts         # Type definitions specific to this feature
 ```
@@ -23,89 +23,165 @@ feature/
 
 The application is organized into the following feature modules:
 
-1. **auth**: Authentication and user profile management
-   - Login, signup, and profile pages
-   - Authentication-specific components
+1.  **auth**: Authentication and user profile management.
+    *   Handles `LoginPage`, `SignupPage`, `UserProfilePage`.
+    *   Contains auth-specific components and hooks.
 
-2. **home**: Homepage and landing page
-   - Homepage with feature overview
-   - Feature navigation cards
+2.  **reviewManager**: Central review management and navigation hub.
+    *   Serves as the main landing page after authentication via the `Review Manager Dashboard`.
+    *   Displays all review sessions categorized by status (Draft, In Progress, Completed).
+    *   Provides navigation to appropriate feature pages based on review status.
+    *   Components include:
+        - `ReviewSessionCard`: Displays individual review session details
+        - `ReviewSessionList`: Lists all review sessions with filtering and sorting
+        - `CreateReviewForm`: Form for creating new reviews
+        - `StatusFilter`: Filter reviews by status
+        - `ReviewActionButtons`: Context-aware navigation buttons
 
-3. **searchStrategy**: Search session and query management
-   - Session creation and management
-   - Query building interface
+3.  **searchStrategy**: Search session and query management.
+    *   Accessed from the Review Manager Dashboard when creating a new review or accessing a draft review.
+    *   Provides the strategy building interface (PIC framework, query configuration).
 
-4. **serpExecution**: Search execution against external APIs
-   - **The `Search Execution Status Page` (with distinct Phase 1 and Phase 2 functionalities) which provides progress tracking for SERP query execution and, in Phase 2, for results processing.**
+4.  **serpExecution**: Search execution against external APIs and status monitoring.
+    *   Serves the `Search Execution Status Page`, which displays progress for SERP query execution (Phase 1) and, in Phase 2, consolidates this with results processing status.
 
-5. **resultsManager**: Results processing and management
-   - Results display and filtering
-   - Duplicate detection
+5.  **resultsManager**: Backend processing of results and, in Phase 2, UIs for managing this process.
+    *   Phase 1: Primarily backend logic with status integrated into `Search Execution Status Page`.
+    *   Phase 2: Includes `Deduplication Overview Page` and `Processing Status Dashboard` for Lead Reviewers/Admins.
 
-6. **reviewResults**: Review workflow with tagging
-   - Tagging interface
-   - Note-taking functionality
+6.  **reviewResults**: Viewing, tagging, and annotating search results.
+    *   Serves the `Results Overview Page` (listing results, filtering, quick actions) and the `Review Interface Page` (detailed view and tagging for a single result).
 
-7. **reporting**: PRISMA flow diagrams and exports
-   - Report generation
-   - Data export functionality
+7.  **reporting**: PRISMA flow diagrams and data exports.
+    *   Serves the `Reporting Page`.
 
-8. **reviewManager**: Management of review sessions. This includes the **`Review Manager Dashboard`** (listing all user-associated review sessions) and, in Phase 2, the **`Session Hub Page`**. The `Session Hub Page` serves as a central navigation and management point for a specific selected review session, offering role-dependent views and functionalities (e.g., for strategy, results, team, settings).
+8.  **sessionHub (Phase 2)**: Provides a centralized view and navigation for a specific active Phase 2 session.
+    *   Serves the `Session Hub Page`, offering role-dependent views and navigation to various tools like strategy, results, team management, settings, and admin dashboards for that session.
 
 Additionally, there is a `shared` directory for truly cross-cutting components:
 
 ```
-shared/
-└── components/      # Components used across multiple features
-    └── MainLayout.tsx  # Main application layout
+src/client/shared/
+└── components/      # Components used across multiple features (e.g., MainLayout.tsx)
+    └── MainLayout.tsx
 ```
 
 ## Component Types
 
 ### Pages
 
-Page components are the top-level components that correspond to routes defined in `main.wasp`. **Examples include the `Review Manager Dashboard`, `Search Strategy Builder`, `Search Execution Status Page`, `Results Overview Page`, and the Phase 2 `Session Hub Page`.** They:
+Page components are the top-level components that correspond to routes defined in `main.wasp`. **Examples include `ReviewManagerPage` (central landing page), `SearchStrategyPage`, `SearchExecutionStatusPage`, `ResultsOverviewPage`, `ReviewInterfacePage`, `ReportingPage`, and the Phase 2 `SessionHubPage`.** They:
 - Focus on composition rather than implementation
 - Use hooks for data fetching and state management
 - Delegate UI rendering to smaller components
 
 Example page component:
 ```tsx
-// src/client/searchStrategy/pages/SearchStrategyPage.tsx
+// src/client/reviewManager/pages/ReviewManagerPage.tsx
 import React from 'react';
-import { CreateSessionForm } from '../components/CreateSessionForm';
-import { SearchSessionList } from '../components/SearchSessionList';
-import { useSearchSessions } from '../hooks/useSearchSessions';
+import { useQuery } from 'wasp/client/operations';
+import { getReviewSessions } from 'wasp/client/operations';
+import { ReviewSessionList } from '../components/ReviewSessionList';
+import { CreateReviewForm } from '../components/CreateReviewForm';
+import { StatusFilter } from '../components/StatusFilter';
+import { useAuth } from 'wasp/client/auth';
 
-export function SearchStrategyPage() {
-  const {
-    sessions,
-    isLoading,
-    error,
-    isCreating,
-    setIsCreating,
-    createSession
-  } = useSearchSessions();
-  
-  // Page composition pattern
+export function ReviewManagerPage() {
+  const { data: user } = useAuth();
+  const [selectedStatus, setSelectedStatus] = React.useState<'all' | 'draft' | 'executing' | 'completed'>('all');
+  const { data: sessions, isLoading, error } = useQuery(getReviewSessions);
+  const [showCreateForm, setShowCreateForm] = React.useState(false);
+
+  if (isLoading) return <div>Loading reviews...</div>;
+  if (error) return <div>Error loading reviews: {error.message}</div>;
+
+  const filteredSessions = sessions?.filter(session => 
+    selectedStatus === 'all' ? true : session.status === selectedStatus
+  );
+
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Search Strategy</h1>
-      
-      <div className="mb-6">
-        {!isCreating ? (
-          <button onClick={() => setIsCreating(true)}>
-            Create New Session
-          </button>
-        ) : (
-          <CreateSessionForm 
-            onCreateSession={createSession}
-            onCancel={() => setIsCreating(false)}
-          />
-        )}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Review Manager</h1>
+        <button 
+          onClick={() => setShowCreateForm(true)} 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Create New Review
+        </button>
       </div>
-      
-      <SearchSessionList sessions={sessions || []} />
+
+      <StatusFilter 
+        selectedStatus={selectedStatus} 
+        onStatusChange={setSelectedStatus} 
+      />
+
+      {showCreateForm && (
+        <CreateReviewForm 
+          onCreateReview={async (name, description) => {
+            // Handle review creation
+            setShowCreateForm(false);
+          }}
+          onCancel={() => setShowCreateForm(false)}
+        />
+      )}
+
+      <ReviewSessionList 
+        sessions={filteredSessions || []} 
+      />
+    </div>
+  );
+}
+```
+
+Example component:
+```tsx
+// src/client/reviewManager/components/ReviewSessionCard.tsx
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ReviewSession } from '../types';
+
+interface ReviewSessionCardProps {
+  session: ReviewSession;
+}
+
+export function ReviewSessionCard({ session }: ReviewSessionCardProps) {
+  const navigate = useNavigate();
+
+  const getNavigationPath = () => {
+    switch (session.status) {
+      case 'draft':
+        return `/search-strategy/${session.id}`;
+      case 'executing':
+        return `/search-execution/${session.id}`;
+      case 'completed':
+        return `/results-overview/${session.id}`;
+      default:
+        return `/search-strategy/${session.id}`;
+    }
+  };
+
+  return (
+    <div className="p-4 border rounded-lg mb-4 hover:shadow-md transition-shadow">
+      <h3 className="text-lg font-medium">{session.name}</h3>
+      <p className="text-gray-600 mt-1">{session.description || 'No description'}</p>
+      <div className="mt-4 flex justify-between items-center">
+        <span className={`px-2 py-1 rounded text-sm ${
+          session.status === 'draft' ? 'bg-gray-200' :
+          session.status === 'executing' ? 'bg-blue-200' :
+          'bg-green-200'
+        }`}>
+          {session.status}
+        </span>
+        <button
+          onClick={() => navigate(getNavigationPath())}
+          className="text-blue-600 hover:text-blue-800"
+        >
+          {session.status === 'draft' ? 'Edit Strategy' :
+           session.status === 'executing' ? 'View Progress' :
+           'View Results'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -124,32 +200,50 @@ Example component:
 import React, { useState } from 'react';
 
 interface CreateSessionFormProps {
-  onCreateSession: (name: string) => Promise<void>;
+  onCreateSession: (name: string, description: string) => Promise<void>;
   onCancel: () => void;
 }
 
 export function CreateSessionForm({ onCreateSession, onCancel }: CreateSessionFormProps) {
-  const [newSessionName, setNewSessionName] = useState('');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
 
-  const handleSubmit = async () => {
-    if (!newSessionName.trim()) return;
-    await onCreateSession(newSessionName);
-    setNewSessionName('');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    await onCreateSession(name, description);
+    setName('');
+    setDescription('');
   };
 
   return (
-    <div className="flex flex-col space-y-2">
-      <input
-        type="text"
-        value={newSessionName}
-        onChange={(e) => setNewSessionName(e.target.value)}
-        placeholder="Session name"
-      />
-      <div className="flex space-x-2">
-        <button onClick={handleSubmit}>Save</button>
-        <button onClick={onCancel}>Cancel</button>
+    <form onSubmit={handleSubmit} className="p-4 border rounded-lg mb-6">
+      <div className="mb-4">
+        <label htmlFor="sessionName" className="block text-sm font-medium text-gray-700">Session Name*</label>
+        <input
+          id="sessionName"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          required
+        />
       </div>
-    </div>
+      <div className="mb-4">
+        <label htmlFor="sessionDescription" className="block text-sm font-medium text-gray-700">Description</label>
+        <textarea
+          id="sessionDescription"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        />
+      </div>
+      <div className="flex space-x-2">
+        <button type="submit" className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Save Session</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+      </div>
+    </form>
   );
 }
 ```
@@ -164,41 +258,42 @@ Custom hooks encapsulate reusable logic specific to a feature. They:
 Example hook:
 ```tsx
 // src/client/searchStrategy/hooks/useSearchSessions.ts
-import { useState } from 'react';
-import { useQuery } from 'wasp/client/operations';
-import { getSearchSessions } from 'wasp/client/operations';
+import { useState, useCallback } from 'react';
+import { useQuery, useAction } from 'wasp/client/operations';
+import { getSearchSessions, createSearchSession } from 'wasp/client/operations'; // Assuming createSearchSession is an action
+import type { SearchSession } from 'wasp/entities';
 
-export function useSearchSessions() {
-  const [isCreating, setIsCreating] = useState(false);
-  
+export function useSearchSessions(userId?: string) { // userId might be optional or handled by Wasp context
+  const [selectedSession, setSelectedSession] = useState<SearchSession | null>(null);
+
   const { 
     data: sessions, 
     isLoading, 
     error, 
     refetch 
-  } = useQuery(getSearchSessions);
+  } = useQuery(getSearchSessions, undefined, { enabled: !!userId }); // Fetch only if userId is available
 
-  const handleCreateSession = async (name: string) => {
+  const createSearchSessionAction = useAction(createSearchSession);
+
+  const handleCreateSession = useCallback(async (name: string, description: string) => {
     if (!name.trim()) return;
-    
     try {
-      // This would be replaced with the actual createSearchSession action
-      // await createSearchSession({ name });
-      setIsCreating(false);
-      refetch();
-    } catch (error) {
-      console.error('Failed to create session:', error);
-      throw error;
+      await createSearchSessionAction({ name, description });
+      refetch(); // Refetch the list of sessions after creation
+    } catch (err: any) {
+      console.error('Failed to create session:', err.message || err);
+      // Potentially rethrow or handle error state in UI
     }
-  };
+  }, [createSearchSessionAction, refetch]);
 
   return {
     sessions,
     isLoading,
     error,
-    isCreating,
-    setIsCreating,
+    selectedSession,
+    selectSession: setSelectedSession, // Function to update selected session
     createSession: handleCreateSession,
+    refetchSessions: refetch,
   };
 }
 ```

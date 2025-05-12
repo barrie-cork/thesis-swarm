@@ -1,8 +1,12 @@
 # Reporting & Export Feature: UX and UI Implementation Plan
 
+---
+**Phase:** Both (Core functionality in Phase 1, enhancements in Phase 2)
+---
+
 ## Overview
 
-The Reporting & Export feature provides researchers with tools to generate structured reports from their systematic reviews, ensuring compliance with PRISMA (Preferred Reporting Items for Systematic Reviews and Meta-Analyses) guidelines. This plan outlines a phased implementation approach that delivers essential reporting capabilities in Phase 1, with enhanced visualization, customization, and export options in Phase 2.
+The Reporting & Export feature provides researchers with tools to generate structured reports from their systematic reviews, ensuring compliance with PRISMA guidelines. This plan outlines a phased implementation for the `Reporting Page`, delivering essential capabilities in Phase 1, with enhanced visualization, customization, and export options in Phase 2.
 
 ## Core Requirements
 
@@ -37,48 +41,63 @@ This section outlines the core functional and technical requirements for the Rep
 
 ## Phase 1 Implementation
 
+---
+**Phase:** Phase 1
+---
+
 ### 1. Reporting & Export Feature Structure
 
-#### Pages & Screens:
+#### Standard Pages:
 
-* **Report Generation Page:**
-  * Central interface for viewing and generating reports from review data of a specific session.
-  * Accessed typically after a review is in progress or completed (e.g., from the Results Overview Page or, in Phase 2, from the Session Hub Page).
-  * Organized into distinct sections corresponding to PRISMA flow components
-  * Presents key statistics and search parameters in a structured format
-  * Simple, text-based presentation optimized for copy/paste operations
+*   **Reporting Page (`/reporting/:sessionId`):**
+    *   Central interface for viewing statistics, PRISMA flow data, and generating basic reports for a specific `SearchSession`.
+    *   Accessed from the relevant `SearchSession` context (e.g., via a button on the `Results Overview Page`).
+    *   Organized into distinct sections: PRISMA Flow Summary, Search Strategy Summary, Query Execution Summary.
+    *   Presents key statistics and search parameters in a structured, copyable format.
 
-* **PRISMA Flow Summary Panel:**
-  * Text-based summary of key PRISMA flow metrics
-  * Displays counts for each stage of the review process
-  * Presents information in a structured, hierarchical format
+#### Panels/Sections within Reporting Page:
 
-* **Search Strategy Summary Panel:**
-  * Comprehensive listing of all search parameters
-  * Grouped by PIC (Population, Interest, Context) framework
-  * Includes additional search parameters (limiters, domains, file types)
+*   **PRISMA Flow Summary Panel:**
+    *   Displays key PRISMA metrics (retrieved, duplicates, reviewed, included, excluded).
+    *   Simple, text-based presentation optimized for copy/paste.
+*   **Search Strategy Summary Panel:**
+    *   Lists defined PICO terms and other search parameters (domains, file types, etc.).
+*   **Query Execution Summary Panel:**
+    *   Lists executed search queries, associated engine (SERP), timestamps, and result counts.
 
-* **Query Execution Summary Panel:**
-  * Lists all search queries executed per search engine (SERP)
-  * Includes execution timestamps and result counts
-  * Shows search engine-specific parameters
+#### Workflow & Transitions:
 
-#### Transitions & Interactions:
+**Workflow:**
 
-* **Review Context (e.g., Results Overview Page / Session Hub Page) → Report Generation:** Direct navigation from a review session's context to the reporting interface.
-* **Copy Section → Clipboard:** One-click copying of specific report sections
-* **Copy Full Report → Clipboard:** Option to copy entire formatted report
-* **Navigation Between Sections:** Tabs or accordion panels for different report components
+1.  The user navigates from a specific session context (e.g., `Results Overview Page` for the relevant `sessionId`) to the `Reporting Page` (`/reporting/:sessionId`).
+2.  On the `Reporting Page`, the user views the generated statistics and summaries.
+3.  The user can copy specific sections or the entire basic report to the clipboard.
+
+*(Refer to `workflow.mmd` for the visual flow.)*
+
+**Navigation:**
+
+*   **Access:** Via a link/button from the `Results Overview Page` (or potentially the Phase 2 `Session Hub Page`) for a specific session.
+*   **Path Example:** `Dashboard > Search Sessions > [Session Name] > Results Overview > Reporting`
+
+#### Role-Based Access (Phase 1):
+
+*   **Researcher, Reviewer, User, Admin:** Can view the `Reporting Page` for sessions they have access to.
+*   Functionality is primarily read-only (viewing stats, copying text).
+
+*(Refer to `project_docs/standards/role_access_matrix.md` for full details.)*
 
 ### 2. UI Components
 
-#### Report Page Layout
+#### Reporting Page Layout (`ReportingPage` component)
 
-* **Header Section:**
-  * Review title and description
-  * Report generation timestamp
-  * Navigation tabs for different report sections
-  * Copy to clipboard buttons
+*   **Header Section:**
+    *   `SearchSession` title/identifier.
+    *   Report generation timestamp.
+    *   Copy to clipboard buttons (per section and potentially full report).
+*   **Content Area:** Contains the specific summary panels.
+
+#### PRISMA Flow Section (Component within `ReportingPage`)
 
 * **PRISMA Flow Section:**
   * Structured display of PRISMA metrics:
@@ -91,6 +110,8 @@ This section outlines the core functional and technical requirements for the Rep
     * Number marked as "maybe" (pending final decision)
   * Simple textual representation with clear labels and values
   * Copy section button
+
+#### Search Strategy Section (Component within `ReportingPage`)
 
 * **Search Strategy Section:**
   * PIC Framework subsection:
@@ -106,6 +127,8 @@ This section outlines the core functional and technical requirements for the Rep
     * Date ranges (if applicable)
     * Language restrictions (if applicable)
   * Copy section button
+
+#### Query Execution Section (Component within `ReportingPage`)
 
 * **Query Execution Section:**
   * Tabular display of executed queries
@@ -154,6 +177,10 @@ This section outlines the core functional and technical requirements for the Rep
   * Tabular formatting preserved where appropriate
 
 ## Phase 2 Enhancements
+
+---
+**Phase:** Phase 2
+---
 
 ### 1. Advanced Visualization Features
 

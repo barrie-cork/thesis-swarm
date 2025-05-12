@@ -1,8 +1,12 @@
-# Review Results Feature: UX and UI Implementation Plan
+# Results Review Feature: UX and UI Implementation Plan
+
+---
+**Phase:** Both (Core review in Phase 1, advanced collaboration in Phase 2)
+---
 
 ## Overview
 
-The Review Results feature is designed to provide researchers with a streamlined interface for evaluating, categorising, and annotating search results from systematic reviews. This implementation plan outlines a consolidated approach that handles both results viewing and the review process within a unified interface, reducing context switching and improving workflow efficiency.
+The Results Review feature provides researchers with interfaces for evaluating, categorising, and annotating processed search results. Phase 1 focuses on the `Results Overview Page` for listing and basic tagging, potentially linking to a simple `Review Interface Page` for individual items. Phase 2 enhances collaboration, conflict resolution, and integrates advanced features like full-text review.
 
 ## Core Requirements
 
@@ -11,71 +15,92 @@ This section outlines the core functional and technical requirements for the Rev
 ### Phase 1 Requirements
 
 #### Functional Requirements
-- **REQ-FR-RR-1:** System must support basic inclusion/exclusion tagging of processed search results (e.g., Include, Exclude, Maybe).
-- **REQ-FR-RR-2:** System must provide a simple notes system allowing users to add annotations to individual results.
-- **REQ-FR-RR-3:** System must support basic filtering of reviewed results (e.g., by tag status, document type).
-- **REQ-FR-RR-4:** System must track and display review progress (e.g., number of results tagged as include/exclude/maybe, percentage complete).
-- **REQ-FR-RR-5:** The review workflow must align with PRISMA principles (e.g., clear stages for screening, eligibility).
-- **REQ-FR-RR-6:** Users must be able to view details of each processed result, including title, snippet, URL, and extracted metadata.
-- **REQ-FR-RR-7:** When a result is tagged as "Exclude", the user must be able to specify an exclusion reason from a predefined list or add a custom reason.
+- **REQ-FR-RR-1:** System must provide a `Results Overview Page` (`/results-overview/:sessionId`) displaying processed results for a session.
+- **REQ-FR-RR-2:** The `Results Overview Page` must support basic filtering (tag status, type) and sorting.
+- **REQ-FR-RR-3:** Users must be able to apply basic tags (Include, Exclude, Maybe) to results, potentially directly on the overview or via a dedicated `Review Interface Page` (`/review/:resultId`).
+- **REQ-FR-RR-4:** When tagging as "Exclude", users must provide a reason.
+- **REQ-FR-RR-5:** Users must be able to add simple notes to individual results (likely on the `Review Interface Page`).
+- **REQ-FR-RR-6:** Progress tracking (counts/percentage tagged) should be visible, likely on the `Results Overview Page`.
+- **REQ-FR-RR-7:** Individual result details (title, snippet, URL, metadata) must be viewable.
 
 #### Technical Requirements
-- **REQ-TR-RR-1:** Tagging and note-taking actions must efficiently update `ReviewTagAssignment` and `Note` entities.
-- **REQ-TR-RR-2:** The UI must handle potentially large lists of results efficiently, likely using virtualized scrolling or pagination.
-- **REQ-TR-RR-3:** All review actions (tagging, notes) should ideally auto-save to prevent data loss.
+- **REQ-TR-RR-1:** Tagging/notes update `ReviewTagAssignment` / `Note` entities.
+- **REQ-TR-RR-2:** `Results Overview Page` must handle large lists (virtualization/pagination).
+- **REQ-TR-RR-3:** Actions should auto-save.
 
 ### Phase 2 Requirements (Enhancements)
 
 #### Functional Requirements
-- **REQ-FR-RR-P2-1:** System must support advanced tagging with custom tags created by users for a specific session.
-- **REQ-FR-RR-P2-2:** System must implement multi-reviewer support, including assigning results to reviewers and managing their progress.
-- **REQ-FR-RR-P2-3:** System must provide tools for conflict detection and resolution when multiple reviewers screen the same results.
-- **REQ-FR-RR-P2-4:** System should provide an interface for managing and resolving duplicate results identified by the `Results Manager`.
-- **REQ-FR-RR-P2-5:** System should support full-text preview for certain document types and allow for highlighting and annotations on the full text.
-- **REQ-FR-RR-P2-6:** System may incorporate AI-assisted review features, such as smart tagging suggestions or relevance ranking.
-- **REQ-FR-RR-P2-7:** System must provide enhanced visual feedback and analytics on review progress, including inter-reviewer reliability statistics.
+- **REQ-FR-RR-P2-1:** Support custom tagging on the `Review Interface Page`.
+- **REQ-FR-RR-P2-2:** Multi-reviewer support (assignment, progress tracking) visible on `Results Overview Page` and potentially `Session Hub Page`.
+- **REQ-FR-RR-P2-3:** Conflict detection/resolution tools (potentially on `Results Overview` or a dedicated conflict view).
+- **REQ-FR-RR-P2-4:** Interface for resolving duplicates identified by Results Manager (potentially linked from `Results Overview` or on `Deduplication Overview Page`).
+- **REQ-FR-RR-P2-5:** Full-text preview/annotation on the `Review Interface Page`.
+- **REQ-FR-RR-P2-6:** AI assistance (suggestions) on the `Review Interface Page`.
+- **REQ-FR-RR-P2-7:** Enhanced analytics/visual feedback.
 
 #### Technical Requirements
-- **REQ-TR-RR-P2-1:** Collaborative review features (multi-reviewer, conflict resolution) must handle concurrent data modifications and provide real-time updates where appropriate.
-- **REQ-TR-RR-P2-2:** Duplicate management UI must clearly present potential duplicates and allow users to confirm or reject relationships.
-- **REQ-TR-RR-P2-3:** Full-text integration may require handling various document formats and providing a performant viewing/annotation experience.
+- **REQ-TR-RR-P2-1:** Collaborative features require real-time updates/concurrent handling.
+- **REQ-TR-RR-P2-2:** Duplicate management UI needs clear presentation/resolution actions.
+- **REQ-TR-RR-P2-3:** Full-text integration requires performant viewer/annotation.
 
 ## Phase 1 Implementation
 
-### 1. Review Results Feature Structure
+---
+**Phase:** Phase 1
+---
 
-#### Pages & Screens:
+### 1. Results Review Feature Structure
 
-* **Review Overview Page:**
-  * Serves as the central hub for reviewing search results from a specific review session
-  * Displays a comprehensive list of processed search results with key metadata
-  * Features a persistent progress bar and status summary at the top
-  * Integrates filtering, sorting, and pagination controls
+#### Standard Pages & Components:
 
-* **Result Interaction Panel:**
-  * Embedded inline panel for examining and tagging individual results without leaving the page
-  * Includes title, organisation, snippet, URL (clickable with visited state indication)
-  * Provides tagging controls (Include, Exclude, Maybe) directly in each result row
-  * Allows for expanding/collapsing additional details and notes section
+*   **Results Overview Page (`/results-overview/:sessionId`):**
+    *   Displays the list of `ProcessedResult` entities for the session.
+    *   Primary interface for filtering, sorting, and getting an overview of review progress.
+    *   May allow quick tagging actions directly on list items.
+    *   Provides navigation to the detailed `Review Interface Page` for each result.
+*   **Review Interface Page (`/review/:resultId`):**
+    *   Focused view for a *single* `ProcessedResult`.
+    *   Displays all details, metadata, snippet, URL.
+    *   Primary location for applying tags (Include/Exclude/Maybe), exclusion reasons, and adding notes.
+    *   May include a simple preview if available.
+*   **Result List Item (Component on `Results Overview Page`):**
+    *   Compact representation of a result.
+    *   Shows key info (title, source, type, tag status).
+    *   Includes link/button to navigate to the `Review Interface Page` (`/review/:resultId`).
+    *   May include quick tag buttons.
 
-* **Result Detail View:**
-  * Expanded view of a single result with complete metadata
-  * Displays full snippet, source information, and document type
-  * Includes tagging options with exclusion reason field when "Exclude" is selected
-  * Provides a notes field for researcher annotations
-  * Features a direct link to view the original document in a new tab
+#### Workflow & Transitions:
 
-#### Transitions & Interactions:
+**Workflow (Reviewing Results):**
 
-* **Search Execution Complete → Review Overview:** Automatic transition after search results are processed
-* **Result Row → Expanded Detail:** Clicking on result title or "Expand" button shows full details
-* **Review Overview → External Document:** Clicking URL opens document in new tab, marks as visited
-* **Tag Selection → Auto-save:** Changes to tags, exclusion reasons, or notes automatically saved
-* **Review Progress Updates:** Progress bar and statistics update in real-time as tagging occurs
+1.  User navigates from `Search Execution Status Page` (or `Session Hub Page` in P2) to the `Results Overview Page` (`/results-overview/:sessionId`) once results are processed.
+2.  User browses the list, using filters/sort controls as needed.
+3.  User selects a result to review in detail, navigating to the `Review Interface Page` (`/review/:resultId`).
+4.  On the `Review Interface Page`, the user examines the result, applies a tag (Include/Exclude/Maybe), adds an exclusion reason if needed, and optionally adds notes.
+5.  Actions are auto-saved.
+6.  User navigates back to the `Results Overview Page` (or potentially to the next/previous result's `Review Interface Page`).
+7.  Progress indicators on the `Results Overview Page` update.
+
+*(Refer to `workflow.mmd` for the visual flow.)*
+
+**Navigation:**
+
+*   **Access Overview:** From `/search-execution/:sessionId` (or `/session-hub/:sessionId` in P2) -> `/results-overview/:sessionId`.
+*   **Access Detail:** From `/results-overview/:sessionId` -> `/review/:resultId`.
+*   **Return/Next:** From `/review/:resultId` -> `/results-overview/:sessionId` (or potentially `/review/:nextResultId`).
+
+#### Role-Based Access (Phase 1):
+
+*   **Reviewer, Lead Reviewer (P2), Admin:** Can view overview/interface, apply tags, add notes.
+*   **Researcher:** Can typically view overview/interface, potentially add notes (TBD), but may not have tagging permissions depending on setup.
+*   **User:** View-only access typically.
+
+*(Refer to `project_docs/standards/role_access_matrix.md` for full details.)*
 
 ### 2. UI Components
 
-#### Review Overview Layout
+#### Results Overview Page Layout
 
 * **Header Section:**
   * Session title and description
@@ -98,7 +123,7 @@ This section outlines the core functional and technical requirements for the Rev
   * Visited URL indicators
   * Pagination controls at bottom
 
-#### Result Row Component
+#### Result List Item Component (on Results Overview)
 
 * **Collapsed View:**
   * Checkbox for bulk selection
@@ -115,6 +140,16 @@ This section outlines the core functional and technical requirements for the Rev
   * Tagging controls with exclusion reason field
   * Notes input area with auto-save
   * Actions menu (copy citation, mark for follow-up)
+
+#### Review Interface Page Layout
+
+* **Expanded View:**
+  * Focused layout for one result.
+  * Displays full title, snippet, URL, all metadata.
+  * Clear controls for selecting Include/Exclude/Maybe tags.
+  * Exclusion reason dropdown/input (conditional on Exclude tag).
+  * Notes text area.
+  * Buttons for navigation (Back to Overview, Next/Previous Result).
 
 ### 3. Interaction Patterns
 
@@ -208,7 +243,13 @@ This section details the specific visual styling for the Review Results feature,
 
 ## Phase 2 Enhancements
 
-### 1. Advanced Interaction Features
+---
+**Phase:** Phase 2
+---
+
+(Enhancements primarily affect the `Review Interface Page` and add collaborative aspects visible on the `Results Overview Page`.)
+
+### 1. Advanced Interaction Features (Keyboard)
 
 #### Keyboard Navigation and Shortcuts
 

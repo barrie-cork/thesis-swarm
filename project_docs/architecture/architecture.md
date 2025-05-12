@@ -168,22 +168,26 @@ The Domain Layer contains the core business entities, interfaces, and business r
 The Application Layer implements the use cases of the application, orchestrating the flow of data to and from the domain entities.
 
 #### Use Cases
-- **User Authentication**: Registration, login, and profile management
-- **Search Strategy Building**: Creating and managing search sessions and queries
-- **Search Execution**: Executing search queries against external search engines, including managing and displaying the real-time progress on the `Search Execution Status Page`. In Phase 2, this page provides a consolidated view of both SERP query execution and subsequent results processing.
-- **Results Management**: Processing, normalizing, and deduplicating search results. In Phase 2, this includes providing specialized interfaces for Lead Reviewers, such as the 'Deduplication Overview' and 'Processing Status Dashboard', for finer-grained control and monitoring.
-- **Review Process**: Tagging, annotating, and reviewing search results
-- **Reporting**: Generating reports and exporting data
-- **Review Session Lifecycle & Navigation**: Managing the overall review session lifecycle and user navigation. This includes directing users to the appropriate stage of their review (e.g., `Search Strategy Builder`, `Search Execution Status Page`, `Results Overview Page`). In Phase 2, this is further enhanced by the `Session Hub Page`, which acts as a central navigation point for a selected review session, offering role-dependent views and actions for both Lead Reviewers and Reviewers.
+
+*   **User Authentication**: Registration on the `Signup Page`, login on the `Login Page`, and profile management on the `User Profile Page`. Upon successful authentication, users are directed to the `Review Manager Dashboard`.
+*   **Review Management**: The `Review Manager Dashboard` serves as the central landing page after authentication, displaying all review sessions owned by the user, categorized by status (Draft, In Progress, Completed). Users can create new reviews, access existing reviews based on their status, and manage their review portfolio.
+*   **Search Session & Strategy Management**: Creating and managing `SearchSession` entities and their associated `SearchQuery` entities on the `Search Strategy Page`. This page is accessed from the Review Manager Dashboard when creating a new review or accessing a draft review.
+*   **Search Execution & Monitoring**: Executing search queries (defined in a `SearchSession`) against external search engines and managing/displaying real-time progress on the `Search Execution Status Page`. This page is accessed from the Review Manager Dashboard for reviews in the executing state.
+*   **Results Processing & Management**: Background processing (normalization, metadata extraction, basic deduplication) of `RawSearchResult` entities into `ProcessedResult` entities. In Phase 2, this includes providing specialized interfaces for Lead Reviewers, such as the `Deduplication Overview Page` and `Processing Status Dashboard`, for finer-grained control and monitoring.
+*   **Results Review**: Displaying processed results on the `Results Overview Page`, accessed from the Review Manager Dashboard for completed reviews, and facilitating tagging, annotating, and detailed review of individual items on the `Review Interface Page`.
+*   **Reporting**: Generating reports (including PRISMA flow data and statistics) and exporting data via the `Reporting Page`.
+*   **Session Lifecycle & Navigation (Phase 2)**: The `Session Hub Page` acts as a central navigation point for a selected Phase 2 review session, offering role-dependent views and actions for Lead Reviewers and Reviewers, linking to various feature pages like `Search Strategy Page`, `Results Overview Page`, `Reporting Page`, etc., all within the context of that session.
 
 #### Services
-- **AuthService**: Handles user authentication and authorization
-- **SearchService**: Manages search sessions and queries. It also plays a role in providing data for and managing the state related to the `Search Execution Status Page`.
-- **ResultsService**: Processes and manages search results. In Phase 2, it exposes data and functionalities for specialized Lead Reviewer interfaces like the 'Deduplication Overview' and 'Processing Status Dashboard'.
-- **ReviewService**: 
-  - **Phase 1 & 2:** Manages core aspects of the review process for individual sessions, such as tagging and notes. Crucially, it is responsible for operations that support the `Review Manager Dashboard`, such as fetching the list of all review sessions associated with a user.
-  - **Phase 2:** Its role expands to include orchestrating the `Session Hub Page` (providing data and handling actions for this session-specific dashboard) and managing more complex role-based access and collaborative features within a review session.
-- **ReportingService**: Generates reports and exports data
+
+*   **ReviewManagerService**: Manages the central Review Manager Dashboard, handling the display and organization of all review sessions, their status updates, and navigation to appropriate feature pages based on review status.
+*   **AuthService**: Handles user authentication (login/signup) and authorization, interacting with the `User` entity and directing authenticated users to the Review Manager Dashboard.
+*   **SearchStrategyService**: Manages `SearchSession` and `SearchQuery` entities. Supports operations for the `Search Strategy Page`, including creating/listing sessions and defining search parameters. It also plays a role in providing data for and managing the state related to initiating searches that transition to the `Search Execution Status Page`.
+*   **SerpExecutionService**: Responsible for executing `SearchQuery` entities against external APIs (e.g., Serper) and tracking their progress. It updates `SearchExecution` and `RawSearchResult` entities and provides status updates for the `Search Execution Status Page`.
+*   **ResultsManagerService**: Handles the backend processing of `RawSearchResult` into `ProcessedResult` entities, including normalization, metadata extraction, and deduplication. It provides status updates for the consolidated Phase 2 `Search Execution Status Page`. In Phase 2, it also exposes data and functionalities for specialized Lead Reviewer interfaces like the `Deduplication Overview Page` and `Processing Status Dashboard`.
+*   **ReviewService**: Manages core aspects of the review process, such as tagging (`ReviewTag`, `ReviewTagAssignment`) and notes (`Note`) for `ProcessedResult` entities. This service supports both the `Results Overview Page` (for displaying tag status) and the `Review Interface Page` (for detailed review actions).
+*   **SessionHubService (Phase 2)**: Orchestrates the `Session Hub Page`, providing role-specific data and handling actions for this session-specific dashboard. It integrates with other services to provide a unified view of a Phase 2 session.
+*   **ReportingService**: Generates reports and exports data for a given `SearchSession`, supporting the `Reporting Page`.
 
 #### State Management
 - Server-side state with client-side caching using React Query (provided by Wasp)
@@ -206,10 +210,24 @@ The Infrastructure Layer provides technical capabilities to support the applicat
 The Presentation Layer handles the user interface and user interactions.
 
 #### UI Components
-- React components organized by feature (auth, searchStrategy, serpExecution, etc.). Key top-level page components include the `Review Manager Dashboard`, `Search Strategy Builder`, `Search Execution Status Page` (with Phase 1 and enhanced Phase 2 versions), `Results Overview Page`, and in Phase 2, the `Session Hub Page`. Reusable UI components in the shared directory
+
+*   React components organized by feature (auth, searchStrategy, serpExecution, etc.). Key top-level page components include:
+    *   `LoginPage` (`/login`)
+    *   `SignupPage` (`/signup`)
+    *   `UserProfilePage` (`/profile`)
+    *   `SearchStrategyPage` (`/search-strategy`)
+    *   `SearchExecutionStatusPage` (`/search-execution/:sessionId`)
+    *   `ResultsOverviewPage` (`/results-overview/:sessionId`)
+    *   `ReviewInterfacePage` (`/review/:resultId`)
+    *   `ReportingPage` (`/reporting/:sessionId`)
+    *   (Phase 2) `SessionHubPage` (`/session-hub/:sessionId` - TBC)
+    *   (Phase 2) `DeduplicationOverviewPage`
+    *   (Phase 2) `ProcessingStatusDashboardPage`
+*   Reusable UI components are located in the `src/client/shared/components/` directory.
 
 #### Routing
-- React Router (provided by Wasp) for client-side routing, directing users to feature-specific pages like the `Search Strategy Builder`, `Search Execution Status Page`, `Results Overview Page`, and the Phase 2 `Session Hub Page`, based on application state and user actions.
+
+*   React Router (provided by Wasp) for client-side routing, directing users to feature-specific pages such as `SearchStrategyPage`, `SearchExecutionStatusPage`, `ResultsOverviewPage`, `ReviewInterfacePage`, and the Phase 2 `SessionHubPage`, based on application state and user actions.
 
 #### Styling
 - TailwindCSS for utility-first styling
@@ -263,14 +281,14 @@ The Presentation Layer handles the user interface and user interactions.
 ## Component Interactions
 The application follows a unidirectional data flow:
 
-1. **User Interaction**: The user interacts with the UI components
-2. **Route Handling**: React Router routes the request to the appropriate page component
-3. **Action/Query Dispatch**: The page component dispatches a Wasp action or query
-4. **Service Orchestration**: The service orchestrates the use case, calling domain entities and interfaces
-5. **Data Access**: The repositories access the database via Prisma ORM
-6. **Response Flow**: The response flows back through the layers to the UI
+1.  User Interaction: The user interacts with UI components on a specific page (e.g., `Search Strategy Page`).
+2.  Route Handling: React Router ensures the correct page component is active.
+3.  Action/Query Dispatch: The page component dispatches a Wasp action or query.
+4.  Service Orchestration: The relevant service (e.g., `SearchStrategyService`, `SerpExecutionService`) orchestrates the use case, calling domain entities and interfaces.
+5.  Data Access: Repositories access the database via Prisma ORM.
+6.  Response Flow: The response flows back through the layers to the UI, updating the page (e.g., `Search Execution Status Page` showing progress, or `Results Overview Page` displaying results).
 
-This flow applies to all interactions, including navigation to and actions within new workflow pages such as the `Search Execution Status Page` and the `Session Hub Page`, where services provide the necessary data and handle operations initiated by user actions on these pages.
+This flow applies to all interactions, including navigation to and actions within all standard workflow pages.
 
 ## Interface Contracts
 The application defines clear interface contracts between components:

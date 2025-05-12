@@ -1,8 +1,12 @@
 # Results Manager Feature: UX and UI Implementation Plan
 
+---
+**Phase:** Both (Core backend in Phase 1, dedicated UI in Phase 2)
+---
+
 ## Overview
 
-The Results Manager feature is a critical backend-driven system responsible for processing, normalising, and enhancing raw search results before they become available for review. In Phase 1, it will operate primarily as a background service with no dedicated UI, whilst Phase 2 will introduce specialised interfaces for monitoring and managing the results processing pipeline, with particular focus on deduplication management.
+The Results Manager feature is a critical backend-driven system responsible for processing, normalising, and enhancing raw search results before they are displayed on the `Results Overview Page`. Phase 1 focuses on the background service with status notifications integrated into other pages. Phase 2 introduces dedicated UI pages (`Processing Status Dashboard`, `Deduplication Overview Page`) primarily for Lead Reviewer and Admin roles.
 
 ## Core Requirements
 
@@ -42,7 +46,17 @@ This section outlines the core functional and technical requirements for the Res
 
 ## Phase 1 Implementation
 
-### 1. Results Manager Core Functionality
+---
+**Phase:** Phase 1
+---
+
+### 1. Results Manager Core Functionality (Backend Focus)
+
+#### Standard Pages:
+
+*   **No dedicated UI page in Phase 1.** Functionality is background processing.
+*   **Integration with `Search Execution Status Page`:** Displays processing progress and status.
+*   **Integration with `Results Overview Page`:** Processed results are displayed here once ready.
 
 #### Background Processing System:
 
@@ -80,37 +94,37 @@ This section outlines the core functional and technical requirements for the Res
   * Support for filtering and sorting operations
   * Metadata enrichment for improved review experience
 
-#### Technical Approach:
+#### Workflow & Transitions (Phase 1 - User Perspective):
 
-* **Processing Pipeline Architecture:**
-  * Modular pipeline with distinct processing stages
-  * Configurable processing steps for easy extension
-  * Logging and error handling for process transparency
-  * Asynchronous processing for optimal performance
-  * Optimised for reliability and feasability. Speed does not matter.
+**Workflow:**
 
-* **Data Quality Assurance:**
-  * Validation checks for required fields
-  * Fallback strategies for failed processing steps
-  * Handling of edge cases (malformed URLs, unusual character sets)
-  * Consistent data formatting for downstream features
+1.  Researcher initiates search execution from the `Search Strategy Page`.
+2.  Execution status (including result retrieval) is monitored on the `Search Execution Status Page`.
+3.  Upon completion of retrieval, the `Search Execution Status Page` indicates that results are now being processed by the Results Manager (background task).
+4.  Users may see notifications about processing progress (e.g., on the status page or via global notifications).
+5.  Once processing is complete, the status updates, and users can navigate to the `Results Overview Page` to view the processed results.
 
-### 2. User Notifications
+*(Refer to `workflow.mmd` for the visual flow, noting Results Manager is a step between Execution and Results Overview.)*
 
-While Phase 1 doesn't include dedicated UI pages for the Results Manager, it will communicate processing status to users through:
+**Navigation:**
 
-* **Processing Status Indicators:**
-  * Integration with search execution status display
-  * Progress notifications (number of results processed)
-  * Completion notifications when results are ready for review
-  * Error alerts for processing issues
+*   No direct navigation *to* a Results Manager page in Phase 1.
+*   Users navigate *from* the `Search Execution Status Page` *to* the `Results Overview Page` once processing is complete.
 
-* **Result Availability Communication:**
-  * Transition prompts to Review Results when processing completes
-  * Basic statistics on processed results (total count, document types)
-  * Estimated time to completion for large result sets
+#### Role-Based Access (Phase 1):
 
-### 3. Visual Design and Styling Guidelines
+*   **All Roles:** Interact indirectly. They trigger processing via search execution and view the final output on the `Results Overview Page`. Status updates are informational.
+
+*(Refer to `project_docs/standards/role_access_matrix.md` for full details.)*
+
+### 2. User Notifications (Integrated UI)
+
+Phase 1 communicates processing status via:
+
+*   **Processing Status Indicators:** Displayed on the `Search Execution Status Page` or via global notifications (progress, completion, errors).
+*   **Result Availability Communication:** Status updates indicating when results are ready on the `Results Overview Page`.
+
+### 3. Visual Design and Styling Guidelines (Phase 1 Notifications)
 
 This section details the specific visual styling for the Results Manager feature, drawing from the global Thesis Grey UI/UX Style Guide. Phase 1 has minimal direct UI, while Phase 2 introduces dedicated interfaces.
 
@@ -125,9 +139,168 @@ While Phase 1 of the Results Manager lacks its own dedicated UI, any notificatio
 *   **Text and Backgrounds:** Text within notifications should use standard primary/secondary text colors (Dark Charcoal for light mode, White for dark mode) on appropriate backgrounds (Pure White/Light Taupe for light mode, Dark Charcoal/Slate for dark mode), depending on the mode and the context of the notification's display.
 *   **Typography:** All text within notifications must use the Inter font and follow the general typographic scales defined in the style guide.
 
-#### 3.2. Phase 2: Styling for Dedicated UIs
+## Phase 2 Enhancements
 
-The following guidelines apply to the dedicated UIs introduced in Phase 2, including the "Processing Status Dashboard," "Processing Configuration Panel," and the "Deduplication Management Interface."
+---
+**Phase:** Phase 2
+---
+
+Introduces dedicated UI pages for managing and monitoring the results processing pipeline.
+
+### 1. Processing Status Dashboard
+
+#### Standard Pages & UI Panels:
+
+*   **Processing Status Dashboard Page:** (New Page)
+    *   Real-time visualization of processing stages for ongoing/recent sessions.
+    *   Progress statistics, history, performance metrics.
+    *   Accessible primarily by Lead Reviewers and Admins.
+*   **Processing Configuration Panel:** (Likely part of the Dashboard or a separate Admin settings area)
+    *   Controls for pipeline customization (intensity, API keys, scheduling).
+    *   Accessible primarily by Admins.
+
+#### UI Components:
+
+* **Pipeline Visualisation:**
+  * Interactive flowchart of processing stages
+  * Status indicators for each pipeline stage
+  * Completion percentages and counts
+  * Bottleneck identification
+
+* **Processing Metrics Panel:**
+  * Processing speed indicators
+  * Resource utilisation charts
+  * Time estimates for completion
+  * Historical performance comparison
+
+* **Configuration Controls:**
+  * Toggle switches for optional processing features
+  * Priority adjustment for processing queue
+  * Advanced settings expandable section
+
+#### Workflow & Navigation (Phase 2 Dashboard):
+
+**Workflow:**
+
+1.  A Lead Reviewer or Admin navigates to the `Processing Status Dashboard Page` (e.g., via an Admin menu or potentially linked from the `Session Hub Page`).
+2.  They monitor ongoing processing, view history, and potentially adjust settings via the `Processing Configuration Panel`.
+
+**Navigation:**
+
+*   **Access:** Typically via Admin/Lead Reviewer specific navigation (e.g., Admin sidebar, `Session Hub Page` tools section).
+*   **Path Example:** `Admin Dashboard > Processing Status` or `Session Hub > Tools > Processing Status`
+
+#### Role-Based Access (Phase 2 Dashboard):
+
+*   **Lead Reviewer:** View dashboard, potentially some basic configuration.
+*   **Admin:** Full access to dashboard and configuration panel.
+*   **Other Roles:** No direct access.
+
+*(Refer to `project_docs/standards/role_access_matrix.md` for full details.)*
+
+### 2. Deduplication Management Interface
+
+#### Standard Pages & UI Panels:
+
+*   **Deduplication Overview Page:** (New Page)
+    *   Summary statistics of duplicate detection for a specific session.
+    *   Visualization of duplicate clusters.
+    *   Filtering and batch action controls.
+    *   Accessible primarily by Lead Reviewers.
+*   **Duplicate Resolution Interface:** (Likely a modal or dedicated view accessed from the Overview Page)
+    *   Side-by-side comparison of potential duplicates.
+    *   Difference highlighting, merge preview, decision controls.
+
+#### UI Components:
+
+* **Duplicate Cluster View:**
+  * Grouped display of identified duplicates
+  * Primary result indication with selection controls
+  * Similarity score visualisation
+  * Expandable details for each result in cluster
+
+* **Comparison Panel:**
+  * Multi-column view of duplicate candidates
+  * Field-by-field difference highlighting
+  * Merge field selectors for choosing primary data
+  * Origin indicators (search engine source)
+
+* **Decision Controls:**
+  * Confirm/reject duplication buttons
+  * Keep all/merge/discard options
+  * Justification field for decision recording
+  * Apply to similar cases option
+
+#### Workflow & Navigation (Phase 2 Deduplication):
+
+**Workflow:**
+
+1.  A Lead Reviewer navigates to the `Deduplication Overview Page` for a specific session (e.g., via the `Results Overview Page` or `Session Hub Page`).
+2.  They review duplicate clusters and select a cluster for detailed resolution.
+3.  The `Duplicate Resolution Interface` is presented.
+4.  The Lead Reviewer compares items, makes a decision (merge, keep separate, etc.), and confirms.
+5.  The system updates the `DuplicateRelationship` records, and the reviewer returns to the overview or moves to the next cluster.
+
+**Navigation:**
+
+*   **Access:** Via link/button from `Results Overview Page` or `Session Hub Page` (for a specific session).
+*   **Path Example:** `Session Hub > [Session Name] > Results Overview > Manage Duplicates` or `Session Hub > [Session Name] > Tools > Deduplication Overview`
+
+#### Role-Based Access (Phase 2 Deduplication):
+
+*   **Lead Reviewer:** Full access to overview and resolution interface.
+*   **Admin:** Likely full access (TBD based on final role definitions).
+*   **Other Roles:** No direct access.
+
+*(Refer to `project_docs/standards/role_access_matrix.md` for full details.)*
+
+### 3. Advanced Metadata Enhancement (Backend Focus)
+
+#### Metadata Extraction System:
+
+* **Enhanced Extraction Capabilities:**
+  * Author detection and normalisation
+  * Publication date identification and formatting
+  * Organisation affiliation extraction
+  * Geographic location recognition
+  * Topic and keyword extraction
+
+* **Metadata Merging Intelligence:**
+  * Smart consolidation of metadata from duplicate results
+  * Cross-reference enhancement between results
+  * Confidence scoring for extracted metadata
+  * User feedback incorporation for improved accuracy
+
+#### UI Integration:
+
+* **Metadata Quality Indicators:**
+  * Completeness scores for extracted metadata
+  * Confidence ratings for automatic extractions
+  * Source attribution for each metadata field
+  * Enhancement suggestions for review
+
+* **Manual Enhancement Controls:**
+  * Edit options for incorrect metadata
+  * Verification buttons for confirming extractions
+  * Bulk application of corrections to similar results
+  * Template creation for common metadata patterns
+
+### 4. Integration with Review Process
+
+* **Bidirectional Communication:**
+  * Feedback loop from reviewers to improve processing
+  * Automatic reprocessing based on manual corrections
+  * Learning from reviewer decisions for future enhancements
+
+* **Processing Analytics:**
+  * Impact reports on processing quality
+  * Reviewer effort reduction metrics
+  * Error rate tracking and improvement monitoring
+  * Processing optimisation recommendations
+
+### Styling Guidelines (Phase 2 UI)
+
+This section describing Phase 2 UI styling remains, ensuring component references match the descriptions above.
 
 ##### Overall Page & Panel Styling
 
@@ -187,137 +360,6 @@ The following guidelines apply to the dedicated UIs introduced in Phase 2, inclu
 *   **Focus States:** All interactive elements (buttons, toggles, input fields, links, items in visualizations if interactive) must have a visible focus state using the Teal (`#6A9CAB`) outline.
 *   **ARIA Attributes:** Implement appropriate ARIA roles, states, and properties for dynamic content, dashboard controls, progress indicators, and complex UI components like the deduplication interface to ensure screen reader compatibility.
 *   **Keyboard Navigation:** All functionalities must be accessible and operable via keyboard.
-
-## Phase 2 Enhancements
-
-### 1. Processing Status Dashboard
-
-#### Pages & Screens:
-
-* **Processing Pipeline Dashboard:**
-  * Real-time visualisation of results processing stages
-  * Detailed progress statistics for each processing step
-  * Timeline view of processing history
-  * Performance metrics and processing time analysis
-
-* **Processing Configuration Panel:**
-  * Controls for pipeline customisation
-  * Options for processing intensity (basic/advanced)
-  * API selection for metadata enhancement services
-  * Scheduling options for resource-intensive tasks
-
-#### UI Components:
-
-* **Pipeline Visualisation:**
-  * Interactive flowchart of processing stages
-  * Status indicators for each pipeline stage
-  * Completion percentages and counts
-  * Bottleneck identification
-
-* **Processing Metrics Panel:**
-  * Processing speed indicators
-  * Resource utilisation charts
-  * Time estimates for completion
-  * Historical performance comparison
-
-* **Configuration Controls:**
-  * Toggle switches for optional processing features
-  * Priority adjustment for processing queue
-  * Advanced settings expandable section
-
-### 2. Deduplication Management Interface
-
-#### Pages & Screens:
-
-* **Deduplication Overview:**
-  * Summary statistics of duplication detection
-  * Visualisation of duplicate clusters
-  * Filter controls for viewing different duplicate types
-  * Batch actions for handling duplicate sets
-
-* **Duplicate Resolution Interface:**
-  * Side-by-side comparison of potential duplicates
-  * Difference highlighting between similar results
-  * Merge preview showing combined metadata
-  * Manual override controls for automated decisions
-
-#### UI Components:
-
-* **Duplicate Cluster View:**
-  * Grouped display of identified duplicates
-  * Primary result indication with selection controls
-  * Similarity score visualisation
-  * Expandable details for each result in cluster
-
-* **Comparison Panel:**
-  * Multi-column view of duplicate candidates
-  * Field-by-field difference highlighting
-  * Merge field selectors for choosing primary data
-  * Origin indicators (search engine source)
-
-* **Decision Controls:**
-  * Confirm/reject duplication buttons
-  * Keep all/merge/discard options
-  * Justification field for decision recording
-  * Apply to similar cases option
-
-#### Interaction Patterns:
-
-* **Duplicate Resolution Workflow:**
-  * Queue-based interface for systematic review
-  * Keyboard shortcuts for quick decisions
-  * Batch resolution for obvious duplicates
-  * Decision recording for audit purposes
-
-* **Manual Deduplication Tools:**
-  * Search and matching tools for identifying unlisted duplicates
-  * Drag-and-drop interface for manual clustering
-  * Similarity threshold adjustment
-  * Custom rule creation for repeat patterns
-
-### 3. Advanced Metadata Enhancement
-
-#### Metadata Extraction System:
-
-* **Enhanced Extraction Capabilities:**
-  * Author detection and normalisation
-  * Publication date identification and formatting
-  * Organisation affiliation extraction
-  * Geographic location recognition
-  * Topic and keyword extraction
-
-* **Metadata Merging Intelligence:**
-  * Smart consolidation of metadata from duplicate results
-  * Cross-reference enhancement between results
-  * Confidence scoring for extracted metadata
-  * User feedback incorporation for improved accuracy
-
-#### UI Integration:
-
-* **Metadata Quality Indicators:**
-  * Completeness scores for extracted metadata
-  * Confidence ratings for automatic extractions
-  * Source attribution for each metadata field
-  * Enhancement suggestions for review
-
-* **Manual Enhancement Controls:**
-  * Edit options for incorrect metadata
-  * Verification buttons for confirming extractions
-  * Bulk application of corrections to similar results
-  * Template creation for common metadata patterns
-
-### 4. Integration with Review Process
-
-* **Bidirectional Communication:**
-  * Feedback loop from reviewers to improve processing
-  * Automatic reprocessing based on manual corrections
-  * Learning from reviewer decisions for future enhancements
-
-* **Processing Analytics:**
-  * Impact reports on processing quality
-  * Reviewer effort reduction metrics
-  * Error rate tracking and improvement monitoring
-  * Processing optimisation recommendations
 
 ## Implementation Guidelines
 

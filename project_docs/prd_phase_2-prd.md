@@ -1,10 +1,10 @@
 # Thesis Grey: Phase 2 PRD
 
-**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/architecture/workflow.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
+**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/mermaid.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
 
 ## Project Overview
 
-Thesis Grey is a specialised search application designed to facilitate the discovery and management of grey literature for clinical guideline development. Phase 2 builds upon the foundation established in Phase 1, enhancing the application with advanced features, improved user experience, and sophisticated data processing capabilities. **Authenticated users first land on the `Review Manager Dashboard`, which lists all their review sessions. For Phase 2 review sessions, selecting a session from this dashboard navigates the user to the `Session Hub Page` for that specific session.** The `Session Hub Page` serves as a central dashboard for managing individual review sessions, offering role-dependent views and navigation to various session-specific functionalities.
+Thesis Grey is a specialised search application designed to facilitate the discovery and management of grey literature for clinical guideline development. Phase 2 builds upon the foundation established in Phase 1, enhancing the application with advanced features, improved user experience, and sophisticated data processing capabilities. **Authenticated users first land on the `Search Strategy Page` (the P1 main dashboard), which lists all their search sessions. For Phase 2 review sessions, selecting a session from this list navigates the user to the `Session Hub Page` for that specific session.** The `Session Hub Page` serves as a central dashboard for managing individual Phase 2 review sessions, offering role-dependent views and navigation to various session-specific functionalities.
 
 This PRD outlines the Phase 2 implementation, which continues to follow Vertical Slice Architecture (VSA) principles while expanding on the core functionality delivered in Phase 1. Phase 2 focuses on advanced features, multi-user collaboration, and sophisticated data processing.
 
@@ -179,19 +179,19 @@ thesis-grey/
 │   │   ├── auth/             # Enhanced authentication UI with roles
 │   │   ├── organization/     # New organization management
 │   │   ├── team/             # New team collaboration features
-│   │   ├── reviewManager/    # Review session listing and management (Review Manager Dashboard)
-│   │   ├── searchStrategy/   # Enhanced search strategy builder
-│   │   ├── serpExecution/    # Multi-API search execution
-│   │   ├── resultsManager/   # Advanced results processing
-│   │   ├── reviewResults/    # Collaborative review interface
-│   │   ├── reporting/        # Advanced reporting and analytics
+│   │   ├── searchStrategy/   # `SearchStrategyPage` (enhanced for P2 templates, history)
+│   │   ├── sessionHub/       # `SessionHubPage` specific components/logic
+│   │   ├── serpExecution/    # `SearchExecutionStatusPage` (enhanced for multi-API, consolidated status)
+│   │   ├── resultsManager/   # Advanced results processing UIs (`DeduplicationOverviewPage`, `ProcessingStatusDashboardPage`)
+│   │   ├── reviewResults/    # `ResultsOverviewPage`, `ReviewInterfacePage` (enhanced for collaboration)
+│   │   ├── reporting/        # `ReportingPage` (enhanced for P2 templates, exports)
 │   │   └── shared/           # Shared UI components
 │   ├── server/               # Server-side code
 │   │   ├── auth/             # Enhanced authentication with roles
 │   │   ├── organization/     # Organization management logic
 │   │   ├── team/             # Team collaboration logic
-│   │   ├── reviewManager/    # Server logic for review session management
 │   │   ├── searchStrategy/   # Advanced search strategy logic
+│   │   ├── sessionHub/       # Server logic for SessionHubPage
 │   │   ├── serpExecution/    # Multi-API search execution
 │   │   ├── resultsManager/   # Advanced deduplication and processing
 │   │   ├── reviewResults/    # Collaborative review logic
@@ -245,7 +245,7 @@ Phase 2 will continue to utilize the Wasp full-stack framework while introducing
 ```wasp
 app ThesisGrey {
   // ...
-  wasp: { version: "^0.16.0" }, // Ensure wasp version is noted
+  wasp: { version: "^0.16.0" }, 
   auth: {
     userEntity: User,
     methods: {
@@ -253,263 +253,201 @@ app ThesisGrey {
       google: {}, // Added in Phase 2
     },
     onAuthFailedRedirectTo: "/login",
-    roles: {
-      // Added in Phase 2
-      researcher: {},
-      reviewer: {},
-      admin: {}
-    }
-    // The onAuthSucceededRedirectTo is generally handled by application logic
-    // or root route definition, leading to the Review Manager Dashboard.
+    onAuthSucceededRedirectTo: "/search-strategy", // Default landing remains Search Strategy Page
+    // Roles are now primarily handled at the application/feature level, not directly in Wasp auth config for this version
   }
 }
 
-// Define ReviewManagerDashboard as the root for authenticated users
-route ReviewManagerDashboardRoute { path: "/", to: ReviewManagerDashboardPage } 
-page ReviewManagerDashboardPage {
-  authRequired: true,
-  component: import { ReviewManagerDashboardPage } from "@src/client/reviewManager/pages/ReviewManagerDashboardPage"
-}
+// SearchStrategyPage is the root for authenticated users.
+// Its definition is in the searchStrategy feature section of the PRD Phase 1 or main.wasp.
 
-// Add admin routes
-route AdminRoute { path: "/admin", to: AdminPage }
-page AdminPage {
-  authRequired: true,
-  role: "admin",
-  component: import { AdminPage } from "@src/client/auth/pages/AdminPage"
-}
+// Admin specific pages might be introduced if needed, access controlled by app logic.
+// Example (if an explicit admin dashboard is created):
+// route AdminDashboardRoute { path: "/admin-dashboard", to: AdminDashboardPage }
+// page AdminDashboardPage {
+//   authRequired: true,
+//   component: import { AdminDashboardPage } from "@src/client/admin/pages/AdminDashboardPage"
+// }
 ```
 
 **Phase 2 Enhancements:**
-- Multiple role types (Researcher, Reviewer, Admin)
-- Organization-based access control
-- Team collaboration features, **often managed and accessed via the `Session Hub Page` for a specific review session.**
-- Enhanced security features
-- OAuth integrations (Google)
-- Role-based authorization, **critical for controlling access to different sections of the `Session Hub Page` and specialized dashboards like `Deduplication Overview`.**
+*   User roles (Researcher, Reviewer, Lead Reviewer, Admin) defined and managed within the application.
+*   Organization-based access control (future enhancement, initial focus on session-level roles).
+*   Team collaboration features, managed and accessed via the `Session Hub Page` for specific review sessions.
+*   Enhanced security features.
+*   OAuth integrations (e.g., Google).
+*   Role-based authorization is critical for controlling access to different sections of the `Session Hub Page` and specialized dashboards like `DeduplicationOverviewPage` and `ProcessingStatusDashboardPage`.
 
-### 2. Search Strategy Builder (Enhancements)
+### 2. Search Strategy (`SearchStrategyPage` Enhancements)
 
 ```wasp
-// New queries and actions
-query getSearchTemplates {
-  fn: import { getSearchTemplates } from "@src/server/searchStrategy/queries.js",
+// Existing SearchStrategyPage and related queries/actions from Phase 1 are enhanced.
+// New queries and actions for P2 features:
+query getSearchStrategyTemplates {
+  fn: import { getSearchStrategyTemplates } from "@src/server/searchStrategy/queries.js",
+  entities: [SearchSession] // Templates are also SearchSession entities marked as isTemplate
+}
+
+action saveSearchStrategyAsTemplate {
+  fn: import { saveSearchStrategyAsTemplate } from "@src/server/searchStrategy/actions.js",
   entities: [SearchSession]
 }
 
-action createConceptGroup {
-  fn: import { createConceptGroup } from "@src/server/searchStrategy/actions.js",
-  entities: [ConceptGroup]
+action createSearchStrategyFromTemplate {
+  fn: import { createSearchStrategyFromTemplate } from "@src/server/searchStrategy/actions.js",
+  entities: [SearchSession, SearchQuery]
 }
 
-action createConcept {
-  fn: import { createConcept } from "@src/server/searchStrategy/actions.js",
-  entities: [Concept]
-}
-
-action saveAsTemplate {
-  fn: import { saveAsTemplate } from "@src/server/searchStrategy/actions.js",
-  entities: [SearchSession]
-}
-
-action useTemplate {
-  fn: import { useTemplate } from "@src/server/searchStrategy/actions.js",
-  entities: [SearchSession, SearchQuery, ConceptGroup, Concept]
-}
+// Potentially actions for managing query versions if implemented with explicit version entities
 ```
 
-**Phase 2 Enhancements:**
-- Advanced concept relationships and operators
-- AI-assisted query suggestions
-- Query history and versioning
-- Visual query builder interface
-- Saved template library
-- MeSH term integration
-- Concept grouping with synonyms
-- Advanced boolean logic
-- **Executing searches transitions the user to the enhanced Phase 2 `Search Execution Status Page`.**
+**Phase 2 Enhancements (to `Search Strategy Page`):**
+*   Advanced concept relationships and operators within the query builder.
+*   AI-assisted query suggestions and term expansion.
+*   Query history and versioning (within a session context).
+*   Visual query builder interface (optional, advanced enhancement).
+*   Saving search strategies as templates and creating new strategies from templates.
+*   MeSH term integration or other ontology support.
+*   Configuration for multiple search APIs (Google, Bing, PubMed, etc.).
+*   Executing searches (by Lead Reviewer) transitions to the enhanced Phase 2 `Search Execution Status Page`.
 
-### 3. SERP Execution (Enhancements)
+### 3. SERP Execution (`SearchExecutionStatusPage` Enhancements)
 
 ```wasp
-// Route for the Search Execution Status Page (enhanced for Phase 2)
-route SearchExecutionStatusRoute { path: "/session/:sessionId/status", to: SearchExecutionStatusPage }
-page SearchExecutionStatusPage {
-  authRequired: true,
-  component: import { SearchExecutionStatusPage } from "@src/client/serpExecution/pages/SearchExecutionStatusPage"
+// SearchExecutionStatusPage route and component definition remains as in P1,
+// but its internal logic and display are enhanced.
+
+// executeSearchQueriesForSession action from P1 is enhanced for multi-API
+action executeMultiApiSearchQueriesForSession { // Renamed for clarity or use existing one with more params
+  fn: import { executeMultiApiSearchQueriesForSession } from "@src/server/serpExecution/actions.js",
+  entities: [SearchSession, SearchQuery, SearchExecution, RawSearchResult]
 }
 
-// Add scheduler page
-route SchedulerRoute { path: "/scheduler", to: SchedulerPage }
-page SchedulerPage {
-  authRequired: true,
-  component: import { SchedulerPage } from "@src/client/serpExecution/pages/SchedulerPage"
-}
-
-// New queries and actions
+// Potentially new actions for scheduling
 action scheduleSearchExecution {
   fn: import { scheduleSearchExecution } from "@src/server/serpExecution/actions.js",
-  entities: [SearchExecution]
+  entities: [SearchExecution] // Or a new ScheduledSearch entity
 }
 
-action executeMultiApiSearch {
-  fn: import { executeMultiApiSearch } from "@src/server/serpExecution/actions.js",
-  entities: [SearchExecution, RawSearchResult]
-}
-
-query getSearchEngineStats {
-  fn: import { getSearchEngineStats } from "@src/server/serpExecution/queries.js",
-  entities: [SearchExecution, RawSearchResult]
+// Potentially new queries for scheduler UI or advanced stats
+query getScheduledSearches {
+  fn: import { getScheduledSearches } from "@src/server/serpExecution/queries.js",
+  entities: [/* ScheduledSearchEntity */]
 }
 ```
 
 **Phase 2 Enhancements:**
-- Support for multiple search APIs:
-  - Google Search API
-  - Bing Search API
-  - DuckDuckGo Search API
-  - PubMed API
-- Advanced rate limiting and quota management
-- Parallel query execution
-- Search execution scheduling
-- **Enhanced progress visualization on the `Search Execution Status Page`, which in Phase 2 provides a consolidated view of both SERP query execution progress and subsequent results processing stages (e.g., normalization, metadata extraction, deduplication). Upon full completion, users are transitioned to the `Results Overview Page`.**
-- Robust error recovery
-- Result caching
-- Configurable search parameters per API
+*   Support for executing searches across multiple APIs (configured on `Search Strategy Page`).
+*   Advanced rate limiting and quota management for multiple APIs.
+*   Parallel query execution across different search engines where feasible.
+*   **`Search Execution Status Page` provides a consolidated, real-time view of both SERP query execution progress AND subsequent results processing stages (from `ResultsManagerService`), including normalization, metadata extraction, and deduplication progress. Upon full completion, users are transitioned to the `Results Overview Page`.**
+*   Search execution scheduling (optional advanced feature).
+*   More robust error recovery mechanisms for API failures.
 
-### 4. Results Manager (Enhancements)
+### 4. Results Management (Enhancements & New Admin UIs: `DeduplicationOverviewPage`, `ProcessingStatusDashboardPage`)
 
 ```wasp
-// Route for the main Results Overview Page (enhanced for Phase 2)
-route ResultsOverviewRoute { path: "/session/:sessionId/overview", to: ResultsOverviewPage }
-page ResultsOverviewPage {
-  authRequired: true,
-  component: import { ResultsOverviewPage } from "@src/client/resultsManager/pages/ResultsOverviewPage"
-}
+// ResultsOverviewPage route and component definition remains as in P1.
+// Its data source (getProcessedResultsForSession) is enhanced by backend processing.
 
-// New advanced results page is conceptually part of the overall Results Overview or specific admin views.
-// We add specific routes for Lead Reviewer dashboards:
+// New routes for P2 Admin UIs (access controlled by app logic for Lead Reviewer/Admin)
 route DeduplicationOverviewRoute { path: "/session/:sessionId/deduplication", to: DeduplicationOverviewPage }
 page DeduplicationOverviewPage {
-  authRequired: true, // Further RBAC for Lead Reviewer done in component/operation
+  authRequired: true,
   component: import { DeduplicationOverviewPage } from "@src/client/resultsManager/pages/DeduplicationOverviewPage"
 }
 
 route ProcessingStatusDashboardRoute { path: "/session/:sessionId/processing-status", to: ProcessingStatusDashboardPage }
 page ProcessingStatusDashboardPage {
-  authRequired: true, // Further RBAC for Lead Reviewer done in component/operation
+  authRequired: true,
   component: import { ProcessingStatusDashboardPage } from "@src/client/resultsManager/pages/ProcessingStatusDashboardPage"
 }
 
-// New queries and actions
-query getAdvancedMetadata {
-  fn: import { getAdvancedMetadata } from "@src/server/resultsManager/queries.js",
-  entities: [ProcessedResult]
-}
-
-action runDeduplicationPipeline {
-  fn: import { runDeduplicationPipeline } from "@src/server/resultsManager/actions.js",
+// New/enhanced queries and actions
+query getDeduplicationClusters { // For DeduplicationOverviewPage
+  fn: import { getDeduplicationClusters } from "@src/server/resultsManager/queries.js",
   entities: [ProcessedResult, DuplicateRelationship]
 }
 
-action manuallySetDuplicate {
-  fn: import { manuallySetDuplicate } from "@src/server/resultsManager/actions.js",
-  entities: [ProcessedResult, DuplicateRelationship]
+action resolveDuplicateCluster {
+  fn: import { resolveDuplicateCluster } from "@src/server/resultsManager/actions.js",
+  entities: [DuplicateRelationship, ProcessedResult]
 }
 
-action extractFullText {
-  fn: import { extractFullText } from "@src/server/resultsManager/actions.js",
-  entities: [ProcessedResult]
+action runAdvancedDeduplication { // Triggers the full P2 pipeline
+  fn: import { runAdvancedDeduplication } from "@src/server/resultsManager/actions.js",
+  entities: [ProcessedResult, DuplicateRelationship] // And RawSearchResult indirectly
+}
+
+query getProcessingPipelineStatus { // For ProcessingStatusDashboardPage
+  fn: import { getProcessingPipelineStatus } from "@src/server/resultsManager/queries.js",
+  entities: [/* Entities related to logging/monitoring processing stages */]
 }
 ```
 
 **Phase 2 Enhancements:**
-- Advanced metadata extraction:
-  - Author detection
-  - Date normalization
-  - Publication type classification
-- Multi-stage deduplication pipeline in this specific order:
-  1. URL similarity analysis
-  2. Title similarity analysis
-  3. Snippet similarity analysis
-  4. Cross-reference between results from different search engines
-- **Manual duplicate management interface, accessible via the `Deduplication Overview Page` for Lead Reviewers.**
-- **Monitoring of processing via the `Processing Status Dashboard` for Lead Reviewers.**
-- Full-text search within results on the `ResultsOverviewPage`.
-- Advanced filtering and categorization on the `ResultsOverviewPage`.
-- Bulk operations
-- Content similarity analysis
+*   Advanced metadata extraction (authors, publication dates, etc.) stored in `ProcessedResult.enhancedMetadata`.
+*   Multi-stage deduplication pipeline (URL similarity, title, snippet, cross-engine).
+*   **Manual duplicate management interface on the `Deduplication Overview Page` for Lead Reviewers.**
+*   **Monitoring of processing pipeline via the `Processing Status Dashboard Page` for Lead Reviewers/Admins.**
+*   Full-text search within results on the `Results Overview Page`.
+*   Advanced filtering and categorization options on the `Results Overview Page`.
 
-### 5. Review Results (Enhancements)
+### 5. Results Review (`ResultsOverviewPage`, `ReviewInterfacePage` Enhancements)
 
 ```wasp
-// New collaborative review page
-route CollaborativeReviewRoute { path: "/collaborative-review/:sessionId", to: CollaborativeReviewPage }
-page CollaborativeReviewPage {
-  authRequired: true,
-  component: import { CollaborativeReviewPage } from "@src/client/reviewResults/pages/CollaborativeReviewPage"
+// Existing routes for ResultsOverviewPage and ReviewInterfacePage from P1 are used.
+// Their functionalities are enhanced.
+
+// New queries and actions for collaborative review and custom tags
+query getReviewAssignmentsForSession { // For multi-reviewer scenarios
+  fn: import { getReviewAssignmentsForSession } from "@src/server/reviewResults/queries.js",
+  entities: [ReviewAssignment, User, ProcessedResult]
 }
 
-// New queries and actions
-query getReviewAssignments {
-  fn: import { getReviewAssignments } from "@src/server/reviewResults/queries.js",
-  entities: [ReviewAssignment, User]
+query getReviewConflictsForSession { // For conflict resolution
+  fn: import { getReviewConflictsForSession } from "@src/server/reviewResults/queries.js",
+  entities: [ReviewConflict, ProcessedResult]
 }
 
-query getReviewConflicts {
-  fn: import { getReviewConflicts } from "@src/server/reviewResults/queries.js",
-  entities: [ReviewConflict]
-}
-
-action assignReviewer {
-  fn: import { assignReviewer } from "@src/server/reviewResults/actions.js",
+action assignResultToReviewer {
+  fn: import { assignResultToReviewer } from "@src/server/reviewResults/actions.js",
   entities: [ReviewAssignment]
 }
 
-action resolveConflict {
-  fn: import { resolveConflict } from "@src/server/reviewResults/actions.js",
-  entities: [ReviewConflict]
+action resolveReviewConflict {
+  fn: import { resolveReviewConflict } from "@src/server/reviewResults/actions.js",
+  entities: [ReviewConflict, ReviewTagAssignment]
 }
 
-action createCustomTag {
-  fn: import { createCustomTag } from "@src/server/reviewResults/actions.js",
-  entities: [ReviewTag]
+action createCustomSessionTag {
+  fn: import { createCustomSessionTag } from "@src/server/reviewResults/actions.js",
+  entities: [ReviewTag] // Tags are session-specific
+}
+
+// Action for full-text annotation (conceptual)
+action addAnnotationToFullText {
+    fn: import { addAnnotationToFullText } from "@src/server/reviewResults/actions.js",
+    entities: [/* AnnotationEntity */]
 }
 ```
 
 **Phase 2 Enhancements:**
-- Advanced tagging system with custom tags
-- Multi-reviewer support
-- Inter-reviewer reliability statistics
-- Conflict resolution tools
-- Annotation and highlighting tools
-- AI-assisted screening
-- Review analytics dashboard
-- Citation management
-- Bulk review operations
-- Review progress tracking
+*   Advanced tagging system with custom, session-specific tags on the `Review Interface Page`.
+*   Multi-reviewer support: assigning results, tracking progress (visible on `Results Overview Page` / `Session Hub Page`).
+*   Conflict detection and resolution tools (potentially on `Review Interface Page` or a dedicated view linked from `Results Overview Page`).
+*   Full-text preview and annotation tools on the `Review Interface Page`.
+*   AI-assisted screening suggestions (optional, on `Review Interface Page`).
+*   Enhanced review analytics dashboard (potentially part of `Reporting Page` or `Session Hub Page`).
 
-### 6. Reporting & Export (Enhancements)
+### 6. Reporting & Export (`ReportingPage` Enhancements)
 
 ```wasp
-// Main reporting page for a session
-route ReportingRoute { path: "/session/:sessionId/reporting", to: ReportingPage }
-page ReportingPage {
-  authRequired: true,
-  component: import { ReportingPage } from "@src/client/reporting/pages/ReportingPage"
-}
+// ReportingPage route remains as in P1, but functionality expands.
 
-// New advanced reporting page - could be the same ReportingPage with more features or a new one
-// New template management page
-route ReportTemplatesRoute { path: "/report-templates", to: ReportTemplatesPage }
-page ReportTemplatesPage {
-  authRequired: true,
-  component: import { ReportTemplatesPage } from "@src/client/reporting/pages/ReportTemplatesPage"
-}
-
-// New queries and actions
-query getReportTemplates {
-  fn: import { getReportTemplates } from "@src/server/reporting/queries.js",
+// New queries and actions for templates and advanced exports
+query getReportTemplatesForUser {
+  fn: import { getReportTemplatesForUser } from "@src/server/reporting/queries.js",
   entities: [ReportTemplate]
 }
 
@@ -518,111 +456,65 @@ action createReportTemplate {
   entities: [ReportTemplate]
 }
 
-action generatePdfReport {
-  fn: import { generatePdfReport } from "@src/server/reporting/actions.js"
+action generatePdfReportForSession {
+  fn: import { generatePdfReportForSession } from "@src/server/reporting/actions.js" // Likely a complex action
 }
 
-action exportRisFormat {
-  fn: import { exportRisFormat } from "@src/server/reporting/actions.js"
+action exportResultsInRisFormat {
+  fn: import { exportResultsInRisFormat } from "@src/server/reporting/actions.js"
 }
 ```
 
-**Phase 2 Enhancements:**
-- Advanced PRISMA visualizations
-- Custom report templates
-- Multiple export formats (PDF, Word, RIS)
-- Interactive dashboards
-- Extended analytics
-- Reference management integration
-- Publication-ready tables and figures
-- Custom visualization tools
+**Phase 2 Enhancements (to `Reporting Page`):**
+*   Advanced PRISMA visualizations.
+*   Custom report templates (creation, selection, application).
+*   Multiple export formats (PDF, Word - conceptual, RIS).
+*   Interactive dashboards for review statistics and analytics.
+*   Reference management integration (e.g., RIS export).
 
-### 7. New Feature: Organization & Team Management
+### 7. New Feature: Session Hub & Collaboration (`SessionHubPage`)
 
-This section describes broad organizational and team structures. **Users interact with specific review sessions via the `Session Hub Page` (for Phase 2 reviews), which is accessed by selecting a P2 review from the `Review Manager Dashboard`.** The `Session Hub Page` then leverages the team and role structures for that particular session.
+This feature introduces the `Session Hub Page` as the central coordination point for Phase 2 sessions, leveraging new Organization and Team entities for context if implemented, but primarily focused on session-level roles and collaboration.
 
 ```wasp
-// New organization management routes
-route OrganizationsRoute { path: "/organizations", to: OrganizationsPage }
-page OrganizationsPage {
-  authRequired: true,
-  component: import { OrganizationsPage } from "@src/client/organization/pages/OrganizationsPage"
-}
-
-route OrganizationDetailsRoute { path: "/organizations/:id", to: OrganizationDetailsPage }
-page OrganizationDetailsPage {
-  authRequired: true,
-  component: import { OrganizationDetailsPage } from "@src/client/organization/pages/OrganizationDetailsPage"
-}
-
-// New team management routes
-route TeamsRoute { path: "/teams", to: TeamsPage }
-page TeamsPage {
-  authRequired: true,
-  component: import { TeamsPage } from "@src/client/team/pages/TeamsPage"
-}
-
-route TeamDetailsRoute { path: "/teams/:id", to: TeamDetailsPage }
-page TeamDetailsPage {
-  authRequired: true,
-  component: import { TeamDetailsPage } from "@src/client/team/pages/TeamDetailsPage"
-}
-
-// New queries and actions
-query getOrganizations {
-  fn: import { getOrganizations } from "@src/server/organization/queries.js",
-  entities: [Organization]
-}
-
-query getTeams {
-  fn: import { getTeams } from "@src/server/team/queries.js",
-  entities: [Team, TeamMembership, User]
-}
-
-action createOrganization {
-  fn: import { createOrganization } from "@src/server/organization/actions.js",
-  entities: [Organization]
-}
-
-action createTeam {
-  fn: import { createTeam } from "@src/server/team/actions.js",
-  entities: [Team, TeamMembership]
-}
-
-action addTeamMember {
-  fn: import { addTeamMember } from "@src/server/team/actions.js",
-  entities: [TeamMembership]
-}
-
 // Route and Page for the Session Hub - accessed for a specific session
 route SessionHubRoute { path: "/session/:sessionId/hub", to: SessionHubPage }
 page SessionHubPage {
   authRequired: true,
-  component: import { SessionHubPage } from "@src/client/reviewManager/pages/SessionHubPage" // Or a more central /shared/pages location
+  component: import { SessionHubPage } from "@src/client/sessionHub/pages/SessionHubPage" // Assuming dedicated feature folder for P2 hub
+}
+
+// Queries for Session Hub data
+query getSessionHubDetails { // Combines session data, user role for this session, team info if applicable
+  fn: import { getSessionHubDetails } from "@src/server/sessionHub/queries.js",
+  entities: [SearchSession, User, /* Team, TeamMembership, UserSessionRole */]
+}
+
+// Actions related to team management within a session context if not globally managed
+action manageSessionTeamMember { // Add, remove, change role for a session
+  fn: import { manageSessionTeamMember } from "@src/server/sessionHub/actions.js",
+  entities: [/* UserSessionRole or similar linking table */]
+}
+
+action updateSessionSettings { // For Lead Reviewer to change session parameters
+  fn: import { updateSessionSettings } from "@src/server/sessionHub/actions.js",
+  entities: [SearchSession]
 }
 ```
 
-**Requirements for Organization & Team Management:**
-- Organization creation and management
-- Team creation within organizations
-- Team member management
-- Role assignment within teams
-- Shared resources within teams
-- Team-level permissions
-
-**Requirements for Session Hub Page (Phase 2):**
--   **Central Dashboard:** Acts as the main landing page for a selected review session, accessed from the `Review Manager Dashboard`.
--   **Role-Based Views:** Dynamically displays content, navigation options, and available actions based on the user's role within that specific session (Lead Reviewer, Reviewer).
--   **Navigation Hub:** Provides clear navigation to various parts of the review session:
-    *   Search Strategy (view/edit for Lead Reviewer, view for Reviewer)
-    *   Results Overview Page
-    *   Review Interface
-    *   Reporting
-    *   Team Management (for Lead Reviewer: manage members, roles for this session)
-    *   Session Settings (for Lead Reviewer: e.g., review parameters)
-    *   Links to `Deduplication Overview` and `Processing Status Dashboard` (for Lead Reviewer).
--   **Session Status & Overview:** Displays key information about the session (e.g., progress, number of results, upcoming tasks).
--   **Action Initiation:** Allows users to initiate relevant actions based on their role (e.g., Lead Reviewer re-executing searches, starting next review phase).
+**Requirements for `Session Hub Page`:**
+*   **Central Dashboard for a Session:** Accessed from the main `Search Strategy Page` (session list) for Phase 2 sessions.
+*   **Role-Based Views:** Dynamically displays content, navigation, and actions based on user's role for *that specific session* (Lead Reviewer, Reviewer).
+*   **Navigation Hub:** Links to:
+    *   `Search Strategy Page` (for this session: edit for LR, view for Reviewer).
+    *   `Results Overview Page`.
+    *   `Review Interface Page` (via Results Overview).
+    *   `ReportingPage`.
+    *   Team Management panel (within Hub, for LR: manage members/roles for this session).
+    *   Session Settings panel (within Hub, for LR: e.g., review parameters, deadlines).
+    *   Links to `Deduplication Overview Page` and `Processing Status Dashboard Page` (for LR).
+*   **Session Status & Overview:** Displays key session information (progress, metrics, team activity).
+*   **Action Initiation:** Allows role-appropriate actions (e.g., LR re-executing searches, Reviewer submitting completed work).
 
 ## API Implementation Examples
 

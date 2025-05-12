@@ -1,6 +1,6 @@
 # Feature Implementation Details
 
-**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/architecture/workflow.mmd` diagram, and the overall architecture documented in `project_docs/architecture/`.**
+**Note:** This document outlines feature implementation using Wasp (version `^0.16.0` as specified in `project_docs/1-wasp-overview.md`). For the most up-to-date Wasp API details and general Wasp documentation, **developers should consult the Context7 MCP to fetch the latest Wasp documentation.** For Thesis Grey specific logic, component structure, UI, and detailed workflows, developers **must always refer to the UX/UI plans in the `project_docs/UI_by_feature/` directory, the `project_docs/mermaid.mmd` diagram (formerly workflow.mmd), and the overall architecture documented in `project_docs/architecture/`.**
 
 This document provides an overview of how each core feature of Thesis Grey is implemented using the Wasp framework.
 
@@ -10,57 +10,56 @@ The authentication feature is implemented using Wasp's built-in authentication s
 
 ### Configuration in main.wasp
 ```wasp
-auth: {
-  userEntity: User,
-  methods: {
-    usernameAndPassword: {},
-  },
-  onAuthFailedRedirectTo: "/login"
+app ThesisGrey {
+  // ... other app settings
+  auth: {
+    userEntity: User,
+    methods: {
+      usernameAndPassword: {},
+    },
+    onAuthFailedRedirectTo: "/login",
+    onAuthSucceededRedirectTo: "/review-manager" // Central landing page
+  }
 }
 
 route LoginRoute { path: "/login", to: LoginPage }
-route SignupRoute { path: "/signup", to: SignupPage }
-route ProfileRoute { path: "/profile", to: ProfilePage }
-
 page LoginPage {
   component: import { LoginPage } from "@src/client/auth/pages/LoginPage"
 }
 
+route SignupRoute { path: "/signup", to: SignupPage }
 page SignupPage {
   component: import { SignupPage } from "@src/client/auth/pages/SignupPage"
 }
 
-page ProfilePage {
+route ProfileRoute { path: "/profile", to: UserProfilePage }
+page UserProfilePage {
   authRequired: true,
-  component: import { ProfilePage } from "@src/client/auth/pages/ProfilePage"
+  component: import { UserProfilePage } from "@src/client/auth/pages/UserProfilePage"
+}
+
+route ReviewManagerRoute { path: "/review-manager", to: ReviewManagerPage }
+page ReviewManagerPage {
+  authRequired: true,
+  component: import { ReviewManagerPage } from "@src/client/reviewManager/pages/ReviewManagerPage"
 }
 ```
 
 ### Client Implementation
-The client-side implementation uses Wasp's pre-built components and hooks:
-
 ```tsx
-// LoginPage.tsx
+// src/client/auth/pages/LoginPage.tsx
 import { LoginForm } from 'wasp/client/auth';
+// ... layout and styling ...
+export function LoginPage() { return <LoginForm />; }
 
-export function LoginPage() {
-  return (
-    <div className="container">
-      <h1>Login</h1>
-      <LoginForm />
-    </div>
-  );
-}
-
-// ProfilePage.tsx - Using useAuth hook
+// src/client/auth/pages/UserProfilePage.tsx
 import { useAuth, logout } from 'wasp/client/auth';
-
-export function ProfilePage() {
+// ... layout and styling ...
+export function UserProfilePage() {
   const { data: user } = useAuth();
-  
   return (
     <div>
-      <h1>Profile</h1>
+      <h1>User Profile</h1>
       <p>Username: {user?.username}</p>
       <button onClick={logout}>Logout</button>
     </div>
@@ -102,9 +101,108 @@ export const getSearchSession = async ({ id }, context) => {
 };
 ```
 
-## 2. Search Strategy Builder
+## 2. Review Manager Dashboard (`ReviewManagerPage`)
 
-The search strategy builder allows users to create and manage search sessions and queries.
+The Review Manager Dashboard serves as the central landing page after authentication, providing users with a comprehensive overview of their reviews and navigation to other features.
+
+### Configuration in main.wasp
+```wasp
+query getReviewSessions {
+  fn: import { getReviewSessions } from "@src/server/reviewManager/queries.js",
+  entities: [SearchSession]
+}
+
+action createReview {
+  fn: import { createReview } from "@src/server/reviewManager/actions.js",
+  entities: [SearchSession]
+}
+
+route ReviewManagerRoute { path: "/review-manager", to: ReviewManagerPage }
+page ReviewManagerPage {
+  authRequired: true,
+  component: import { ReviewManagerPage } from "@src/client/reviewManager/pages/ReviewManagerPage"
+}
+```
+
+### Implementation Highlights
+
+1. **Review Session Overview**: Displays all review sessions owned by the user, categorized by status (Draft, In Progress, Completed).
+2. **Navigation Hub**: Provides context-aware navigation to other features based on review status:
+   - Draft reviews → Search Strategy Page
+   - Executing reviews → Search Execution Status Page
+   - Completed reviews → Results Overview Page
+3. **Review Management**: Allows users to create new reviews, filter existing reviews by status, and manage their review portfolio.
+
+### Client Implementation
+```tsx
+// src/client/reviewManager/pages/ReviewManagerPage.tsx
+import { useQuery } from 'wasp/client/operations';
+import { getReviewSessions, createReview } from 'wasp/client/operations';
+import { ReviewSessionList } from '../components/ReviewSessionList';
+import { CreateReviewForm } from '../components/CreateReviewForm';
+
+export function ReviewManagerPage() {
+  const { data: sessions, isLoading, error } = useQuery(getReviewSessions);
+
+  const handleCreateReview = async (name: string, description: string) => {
+    try {
+      await createReview({ name, description });
+      // Handle success (e.g., show notification, refresh list)
+    } catch (error) {
+      // Handle error
+    }
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1>Review Manager</h1>
+      <CreateReviewForm onSubmit={handleCreateReview} />
+      <ReviewSessionList sessions={sessions} />
+    </div>
+  );
+}
+```
+
+### Server Implementation
+```typescript
+// src/server/reviewManager/queries.js
+export const getReviewSessions = async (args, context) => {
+  if (!context.user) {
+    throw new HttpError(401, "Unauthorized");
+  }
+
+  return context.entities.SearchSession.findMany({
+    where: { userId: context.user.id },
+    orderBy: { updatedAt: 'desc' },
+    include: {
+      searchQueries: true,
+      searchExecutions: true
+    }
+  });
+};
+
+// src/server/reviewManager/actions.js
+export const createReview = async ({ name, description }, context) => {
+  if (!context.user) {
+    throw new HttpError(401, "Unauthorized");
+  }
+
+  return context.entities.SearchSession.create({
+    data: {
+      name,
+      description,
+      userId: context.user.id
+    }
+  });
+};
+```
+
+## 3. Search Strategy & Session Management (`SearchStrategyPage`)
+
+The `Search Strategy Page` allows users to list, create, and manage search sessions, and to define/edit search queries within a selected session.
 
 ### Configuration in main.wasp
 ```wasp
@@ -113,8 +211,8 @@ query getSearchSessions {
   entities: [SearchSession]
 }
 
-query getSearchSession {
-  fn: import { getSearchSession } from "@src/server/searchStrategy/queries.js",
+query getSearchSessionDetails { // For editing a specific session's strategy
+  fn: import { getSearchSessionDetails } from "@src/server/searchStrategy/queries.js",
   entities: [SearchSession, SearchQuery]
 }
 
@@ -123,96 +221,89 @@ action createSearchSession {
   entities: [SearchSession]
 }
 
-action createSearchQuery {
-  fn: import { createSearchQuery } from "@src/server/searchStrategy/actions.js",
-  entities: [SearchQuery]
+action updateSearchSessionStrategy { // Includes creating/updating/deleting queries for that session
+  fn: import { updateSearchSessionStrategy } from "@src/server/searchStrategy/actions.js",
+  entities: [SearchSession, SearchQuery]
 }
 
-action updateSearchQuery {
-  fn: import { updateSearchQuery } from "@src/server/searchStrategy/actions.js",
-  entities: [SearchQuery]
+// Route for the main Search Strategy Page
+route SearchStrategyRoute { path: "/search-strategy", to: SearchStrategyPage }
+page SearchStrategyPage {
+  authRequired: true,
+  component: import { SearchStrategyPage } from "@src/client/searchStrategy/pages/SearchStrategyPage"
 }
 ```
 
 ### Implementation Highlights
 
-1. **Session Management**
-   - User-specific sessions
-   - CRUD operations with automatic authorization checks
+1.  **Session Listing & Creation**: Users can view their existing `SearchSession` entities and create new ones (name, description).
+2.  **Strategy Building**: For a selected (new or draft) session, users define PIC terms, configure filters (domains, file types), and set other parameters (max results). The query preview updates in real-time.
+3.  **Saving & Execution**: Users can save the strategy (updating `SearchSession` and its `SearchQuery` children) or initiate execution, which transitions to the `Search Execution Status Page`.
 
-2. **Query Building**
-   - PICO framework support (Population, Interest, Context)
-   - Query preview functionality
-   - Domain and file type filtering
+### Client Implementation
+```tsx
+// src/client/searchStrategy/pages/SearchStrategyPage.tsx (Conceptual)
+import { useQuery } from 'wasp/client/operations';
+import { getSearchSessions, createSearchSession } from 'wasp/client/operations';
+// ... other imports for components like SearchSessionList, StrategyEditor ...
 
-3. **Client Implementation**
-   ```tsx
-   // Using Wasp's query hooks
-   const { data: sessions, isLoading } = useQuery(getSearchSessions);
-   
-   // Creating a session
-   const handleCreateSession = async () => {
-     try {
-       await createSearchSession({ name: sessionName, description });
-       refetch();
-     } catch (error) {
-       console.error("Failed to create session:", error);
-     }
-   };
-   ```
+export function SearchStrategyPage() {
+  const { data: sessions, refetch } = useQuery(getSearchSessions);
+  // ... logic to handle selected session, display list or editor ...
 
-## 2.5. Review Session Hub (Phase 2)
+  const handleCreateSession = async (name: string, description: string) => {
+    try {
+      await createSearchSession({ name, description });
+      refetch();
+    } catch (error) {
+      console.error("Failed to create session:", error);
+    }
+  };
+  // ... JSX for listing sessions, showing create form, or strategy editor ...
+}
+```
 
-The `Session Hub Page` becomes a central point for managing an individual review session in Phase 2. It provides role-based navigation and access to different facets of the review.
+## 4. Session Hub (Phase 2 - `SessionHubPage`)
 
-### Configuration in `main.wasp` (Conceptual)
+The `Session Hub Page` is a Phase 2 feature providing a central dashboard for a specific, active review session, with role-based navigation and functionalities.
+
+### Configuration in `main.wasp` (Phase 2)
 ```wasp
-// In main.wasp, under Review Manager or a general routing section (Phase 2)
-route SessionHubRoute { path: "/session/:sessionId/hub", to: SessionHubPage }
+route SessionHubRoute { path: "/session/:sessionId/hub", to: SessionHubPage } // Example path
 page SessionHubPage {
   authRequired: true,
-  component: import { SessionHubPage } from "@src/client/reviewManager/pages/SessionHubPage" // Or a dedicated sessionHub feature
+  component: import { SessionHubPage } from "@src/client/sessionHub/pages/SessionHubPage" // Assuming dedicated feature folder
+}
+
+query getSessionHubData { // Fetches all data needed for the hub based on session and user role
+  fn: import { getSessionHubData } from "@src/server/sessionHub/queries.js",
+  entities: [SearchSession, /* potentially Team, UserSessionRole, etc. */]
 }
 ```
 
 ### Implementation Highlights
 
-1.  **Centralized Navigation:** Provides links to Strategy, Results, Team Management, Settings, Reports, and Admin Dashboards (for Lead Reviewers).
-2.  **Role-Based Views:** Content and actions are tailored based on the user's role (Lead Reviewer vs. Reviewer) for that session.
-3.  **Data Aggregation:** Uses Wasp queries to fetch session details, team information, and review settings.
-    ```typescript
-    // Client-side conceptual logic for SessionHubPage:
-    // This page uses Wasp queries (e.g., getSessionHubDetails) to fetch comprehensive 
-    // session data and the current user's role for that specific session. 
-    // It then conditionally renders navigation links and components.
-    // Example: 
-    // const { data: sessionDetails } = useQuery(getSessionHubDetails, { sessionId });
-    // const { data: user } = useAuth();
-    // // Logic to determine user's role for this session (e.g., from sessionDetails or a separate query).
-    ```
+1.  **Centralized View**: Links to Strategy (`Search Strategy Page` for this session), Results (`Results Overview Page`), Team Management, Session Settings, Reporting (`Reporting Page`), and Admin tools (like `Deduplication Overview Page`, `Processing Status Dashboard`).
+2.  **Role-Based Content**: Dynamically renders content and actions based on the user's role within that specific session (e.g., Lead Reviewer vs. Reviewer).
 
-## 3. SERP Execution
+## 5. SERP Execution (`SearchExecutionStatusPage`)
 
-The SERP execution feature handles the running of search queries against external APIs and displaying their progress.
+This feature executes defined search strategies against external APIs and displays progress.
 
 ### Configuration in `main.wasp`
 ```wasp
-query getSearchQueries {
-  fn: import { getSearchQueries } from "@src/server/serpExecution/queries.js",
-  entities: [SearchQuery]
-}
-
-query getSearchExecutions {
-  fn: import { getSearchExecutions } from "@src/server/serpExecution/queries.js",
+// Queries to get SearchExecution status, if needed directly by client beyond what page receives
+query getSearchExecutionStatus {
+  fn: import { getSearchExecutionStatus } from "@src/server/serpExecution/queries.js",
   entities: [SearchExecution]
 }
 
-action executeSearchQuery {
-  fn: import { executeSearchQuery } from "@src/server/serpExecution/actions.js",
-  entities: [SearchQuery, SearchExecution, RawSearchResult]
+action executeSearchQueriesForSession { // Action to trigger all queries in a session
+  fn: import { executeSearchQueriesForSession } from "@src/server/serpExecution/actions.js",
+  entities: [SearchSession, SearchQuery, SearchExecution, RawSearchResult]
 }
 
-route SearchExecutionStatusRoute { path: "/session/:sessionId/status", to: SearchExecutionStatusPage }
+route SearchExecutionStatusRoute { path: "/search-execution/:sessionId", to: SearchExecutionStatusPage }
 page SearchExecutionStatusPage {
   authRequired: true,
   component: import { SearchExecutionStatusPage } from "@src/client/serpExecution/pages/SearchExecutionStatusPage"
@@ -221,168 +312,82 @@ page SearchExecutionStatusPage {
 
 ### Implementation Highlights
 
-1. **Query Execution:** Integration with Google Search API via Serper. Asynchronous execution. **The status of these operations is displayed on the dedicated `Search Execution Status Page`. In Phase 1, this page shows SERP query progress. In Phase 2, it's enhanced to show a consolidated view of both SERP query execution and subsequent results processing (with results processing status provided by the `Results Manager` feature), with the UI for this consolidated view managed by the `SERP Execution` feature.**
+1.  **Query Execution**: Asynchronous execution against external APIs (e.g., Serper for Google Search). Status (running, completed, failed) is tracked in `SearchExecution` entities.
+2.  **Status Display**: The `Search Execution Status Page` shows progress for SERP API calls. In Phase 2, this page is enhanced to provide a consolidated view of both SERP query execution *and* subsequent results processing stages (from the `ResultsManagerService`), with the UI for this consolidated view managed by the `serpExecution` feature.
 
-2. **Error Handling**
-   - Robust error handling for API failures
-   - Status updates for failed executions
+### Server Implementation (Conceptual `executeSearchQueriesForSession`)
+```typescript
+// In src/server/serpExecution/actions.js
+export const executeSearchQueriesForSession = async ({ sessionId }, context) => {
+  // ... authorization ...
+  const searchQueries = await context.entities.SearchQuery.findMany({ where: { sessionId } });
+  
+  for (const query of searchQueries) {
+    const execution = await context.entities.SearchExecution.create({
+      data: { queryId: query.id, sessionId, status: 'pending', startTime: new Date() }
+    });
+    // Trigger background job for individual query execution (e.g., _executeSingleSearchQueryJob)
+    // This job would call the external API, store RawSearchResults, and update SearchExecution status.
+    // Example: _executeSingleSearchQueryJob.performAsync({ executionId: execution.id, queryText: query.queryText, maxResults: query.maxResults });
+  }
+  return { message: "Search execution started for session " + sessionId };
+};
+```
 
-3. **Server Implementation**
-   ```typescript
-   // In src/server/serpExecution/actions.js
-   export const executeSearchQuery = async ({ queryId, maxResults = 100 }, context) => {
-     if (!context.user) {
-       throw new HttpError(401, "Unauthorized");
-     }
-     
-     // Create execution record
-     const execution = await context.entities.SearchExecution.create({
-       data: {
-         queryId,
-         sessionId: query.sessionId,
-         status: 'running',
-         startTime: new Date()
-       }
-     });
-     
-     // Execute search in background
-     executeSearch(context.entities, execution.id, query, maxResults);
-     
-     return { executionId: execution.id, status: 'running' };
-   };
-   
-   // Helper function for search execution
-   async function executeSearch(entities, executionId, query, maxResults) {
-     try {
-       // Call Google Search API via Serper
-       const results = await searchGoogle(query.query, maxResults);
-       
-       // Store results
-       for (const result of results) {
-         await entities.RawSearchResult.create({
-           data: {
-             queryId: query.id,
-             title: result.title,
-             url: result.link,
-             snippet: result.snippet,
-             rank: result.position,
-             searchEngine: 'google',
-             rawResponse: result
-           }
-         });
-       }
-       
-       // Update execution status
-       await entities.SearchExecution.update({
-         where: { id: executionId },
-         data: { status: 'completed', endTime: new Date() }
-       });
-     } catch (error) {
-       // Handle errors
-       await entities.SearchExecution.update({
-         where: { id: executionId },
-         data: { status: 'failed', error: error.message }
-       });
-     }
-   }
-   ```
+## 6. Results Management (`ResultsOverviewPage`, Phase 2 Admin UIs)
 
-## 4. Results Manager
+Handles backend processing of raw results and provides UIs for review and (in P2) admin management.
 
-The results manager processes raw search results into normalized entries and handles duplicate detection. **In Phase 2, it also provides specialized UIs for Lead Reviewers for advanced control and monitoring.**
-
-### Configuration in `main.wasp` (Phase 2 Additions)
+### Configuration in `main.wasp`
 ```wasp
-// In main.wasp, under Results Manager or a general routing section (Phase 2)
-// These pages are typically for Lead Reviewers and access is further controlled by RBAC.
-route DeduplicationOverviewRoute { path: "/session/:sessionId/deduplication", to: DeduplicationOverviewPage }
+query getProcessedResultsForSession { // For ResultsOverviewPage
+  fn: import { getProcessedResultsForSession } from "@src/server/resultsManager/queries.js",
+  entities: [ProcessedResult, SearchSession /* + other related entities for display */]
+}
+
+// Phase 2 Admin Pages for Results Manager
+route DeduplicationOverviewRoute { path: "/session/:sessionId/deduplication", to: DeduplicationOverviewPage } 
 page DeduplicationOverviewPage {
-  authRequired: true, 
+  authRequired: true,
   component: import { DeduplicationOverviewPage } from "@src/client/resultsManager/pages/DeduplicationOverviewPage"
 }
 
 route ProcessingStatusDashboardRoute { path: "/session/:sessionId/processing-status", to: ProcessingStatusDashboardPage }
 page ProcessingStatusDashboardPage {
-  authRequired: true, 
+  authRequired: true,
   component: import { ProcessingStatusDashboardPage } from "@src/client/resultsManager/pages/ProcessingStatusDashboardPage"
+}
+
+// Results Overview Page (primarily for reviewResults feature, but relies on processed data)
+route ResultsOverviewRoute { path: "/results-overview/:sessionId", to: ResultsOverviewPage }
+page ResultsOverviewPage {
+  authRequired: true,
+  component: import { ResultsOverviewPage } from "@src/client/reviewResults/pages/ResultsOverviewPage"
 }
 ```
 
 ### Implementation Highlights
 
-1. **Result Processing:** URL normalization, metadata extraction. Basic duplicate detection. **In Phase 2, specialized UIs like the `Deduplication Overview` (for managing automated duplicate sets) and `Processing Status Dashboard` (for detailed logs/configuration) are available to Lead Reviewers.**
+1.  **Backend Processing**: Normalization, metadata extraction, basic deduplication. Status updates contribute to the consolidated P2 `Search Execution Status Page`.
+2.  **Results Display**: Processed results are shown on the `Results Overview Page`.
+3.  **Phase 2 Admin UIs**: `Deduplication Overview Page` and `Processing Status Dashboard Page` for Lead Reviewers/Admins.
 
-2. **Client Implementation**
-   ```tsx
-   // Fetch raw and processed results
-   const rawResultsQuery = useQuery(getRawResults, { sessionId });
-   const processedResultsQuery = useQuery(getProcessedResults, { sessionId });
-   
-   // Process results
-   const handleProcessResults = async () => {
-     try {
-       setIsProcessing(true);
-       const result = await processSessionResults({ sessionId });
-       // Refresh data
-       rawResultsQuery.refetch();
-       processedResultsQuery.refetch();
-     } catch (error) {
-       console.error("Failed to process results:", error);
-     } finally {
-       setIsProcessing(false);
-     }
-   };
-   ```
+## 7. Results Review (`ResultsOverviewPage`, `ReviewInterfacePage`)
 
-3. **Server Implementation**
-   ```typescript
-   // URL normalization
-   function normalizeUrl(url) {
-     let normalized = url.trim().toLowerCase();
-     normalized = normalized.replace(/^https?:\/\//, '');
-     normalized = normalized.replace(/^www\./, '');
-     normalized = normalized.replace(/\/$/, '');
-     return normalized;
-   }
-   
-   // Duplicate detection
-   async function findDuplicates(context, newResult, duplicateRelationships) {
-     const normalizedUrl = normalizeUrl(newResult.url);
-     
-     const potentialDuplicates = await context.entities.ProcessedResult.findMany({
-       where: {
-         url: normalizedUrl,
-         id: { not: newResult.id }
-       }
-     });
-     
-     for (const duplicate of potentialDuplicates) {
-       await context.entities.DuplicateRelationship.create({
-         data: {
-           primaryResultId: duplicate.id < newResult.id ? duplicate.id : newResult.id,
-           duplicateResultId: duplicate.id < newResult.id ? newResult.id : duplicate.id,
-           similarityScore: 1.0,
-           duplicateType: 'url_match'
-         }
-       });
-     }
-   }
-   ```
-
-## 5. Review Results
-
-The review interface allows users to tag and annotate processed results.
+Allows users to view, tag, and annotate processed search results.
 
 ### Configuration in main.wasp
 ```wasp
-query getReviewTags {
-  fn: import { getReviewTags } from "@src/server/reviewResults/queries.js",
-  entities: [ReviewTag]
+// getProcessedResultsForSession query (defined under Results Manager) is used by ResultsOverviewPage
+
+query getSingleProcessedResultDetails { // For ReviewInterfacePage
+  fn: import { getSingleProcessedResultDetails } from "@src/server/reviewResults/queries.js",
+  entities: [ProcessedResult, ReviewTagAssignment, ReviewTag, Note]
 }
 
-query getResultsWithTags {
-  fn: import { getResultsWithTags } from "@src/server/reviewResults/queries.js",
-  entities: [ProcessedResult, ReviewTagAssignment, ReviewTag, Note]
+query getReviewTagsForSession {
+  fn: import { getReviewTagsForSession } from "@src/server/reviewResults/queries.js",
+  entities: [ReviewTag]
 }
 
 action createReviewTag {
@@ -390,128 +395,58 @@ action createReviewTag {
   entities: [ReviewTag]
 }
 
-action assignTag {
-  fn: import { assignTag } from "@src/server/reviewResults/actions.js",
+action assignTagToResult {
+  fn: import { assignTagToResult } from "@src/server/reviewResults/actions.js",
   entities: [ReviewTagAssignment]
 }
 
-action createNote {
-  fn: import { createNote } from "@src/server/reviewResults/actions.js",
+action createNoteForResult {
+  fn: import { createNoteForResult } from "@src/server/reviewResults/actions.js",
   entities: [Note]
+}
+
+// ResultsOverviewPage is defined under Results Manager as it displays processed data
+// ReviewInterfacePage for detailed single result review
+route ReviewInterfaceRoute { path: "/review/:resultId", to: ReviewInterfacePage }
+page ReviewInterfacePage {
+  authRequired: true,
+  component: import { ReviewInterfacePage } from "@src/client/reviewResults/pages/ReviewInterfacePage"
 }
 ```
 
 ### Implementation Highlights
 
-1. **Tag Management**
-   - Create custom tags with colors
-   - Apply tags to search results
-   - Filter results by tag
-   - **In Phase 2, Lead Reviewers will have controls to resolve tagging conflicts if multiple reviewers disagree.**
+1.  **Results Listing**: `Results Overview Page` lists `ProcessedResult` entities with filtering and sorting.
+2.  **Detailed Review**: `Review Interface Page` provides a focused view for one result, allowing tagging (Include/Exclude/Maybe), exclusion reasons, and note-taking.
 
-2. **Note Taking**
-   - Add notes to search results
-   - View notes chronologically
+## 8. Reporting & Export (`ReportingPage`)
 
-3. **Client Implementation**
-   ```tsx
-   // Fetch tags and results
-   const tagsQuery = useQuery(getReviewTags, { sessionId });
-   const resultsQuery = useQuery(getResultsWithTags, {
-     sessionId,
-     tagId: selectedTagId,
-     untaggedOnly,
-     page: currentPage
-   });
-   
-   // Assign tag to result
-   const handleAssignTag = async (resultId, tagId) => {
-     try {
-       await assignTag({ resultId, tagId });
-       resultsQuery.refetch();
-     } catch (error) {
-       console.error("Failed to assign tag:", error);
-     }
-   };
-
-   // In Phase 2, the Results Overview Page will also provide a navigation 
-   // point for Lead Reviewers to access the `Deduplication Overview` page 
-   // (part of the `Results Manager` feature).
-   ```
-
-## 6. Reporting & Export
-
-The reporting feature generates statistics and exports results in various formats.
+Generates statistics and exports results.
 
 ### Configuration in main.wasp
 ```wasp
-query getReportData {
-  fn: import { getReportData } from "@src/server/reporting/queries.js",
-  entities: [SearchSession, ProcessedResult, ReviewTagAssignment, ReviewTag]
+query getReportDataForSession {
+  fn: import { getReportDataForSession } from "@src/server/reporting/queries.js",
+  entities: [SearchSession, ProcessedResult, ReviewTagAssignment, ReviewTag, SearchQuery, SearchExecution]
 }
 
-action exportResults {
-  fn: import { exportResults } from "@src/server/reporting/actions.js"
+action exportSessionResults {
+  fn: import { exportSessionResults } from "@src/server/reporting/actions.js"
+  // This action likely doesn't modify entities directly but reads them to produce a file/data.
+}
+
+route ReportingRoute { path: "/reporting/:sessionId", to: ReportingPage }
+page ReportingPage {
+  authRequired: true,
+  component: import { ReportingPage } from "@src/client/reporting/pages/ReportingPage"
 }
 ```
 
 ### Implementation Highlights
 
-1. **PRISMA Flow Diagram**
-   - Visual representation of the review workflow
-   - Statistics for each stage of the process
-
-2. **Result Export**
-   - Export to CSV and JSON formats
-   - Filter exports by tag
-   - Include metadata and annotations
-
-3. **Server Implementation**
-   ```typescript
-   // Generate report data
-   export const getReportData = async ({ sessionId }, context) => {
-     // Gather statistics
-     const rawResultsCount = await context.entities.RawSearchResult.count({...});
-     const processedResultsCount = await context.entities.ProcessedResult.count({...});
-     const taggedResultsCount = await context.entities.ProcessedResult.count({...});
-     
-     return {
-       summary: {
-         name: session.name,
-         queriesCount: session.searchQueries.length,
-         rawResultsCount,
-         processedResultsCount,
-         taggedResultsCount,
-         // ... other stats
-       },
-       tags: tagCounts,
-       fileTypes: fileTypeCounts
-     };
-   };
-   
-   // Export functionality
-   export const exportResults = async ({ sessionId, format, tagId }, context) => {
-     // Get filtered results
-     const results = await context.entities.ProcessedResult.findMany({...});
-     
-     // Format for export
-     const formattedResults = results.map(result => ({
-       title: result.title,
-       url: result.url,
-       tags: result.reviewTags.map(rt => rt.tag.name).join(', '),
-       // ... other fields
-     }));
-     
-     // Generate CSV or JSON
-     switch (format) {
-       case 'csv':
-         return { format: 'csv', content: generateCSV(formattedResults) };
-       case 'json':
-         return { format: 'json', content: JSON.stringify(formattedResults) };
-     }
-   };
-   ```
+1.  **PRISMA Data**: The `Reporting Page` displays PRISMA flow data and other statistics.
+2.  **Export**: Supports CSV/JSON export of results.
 
 ## Conclusion
 
-Each feature implementation follows the same pattern of defining operations in `main.wasp` and implementing them in the corresponding server and client files. This consistent approach, combined with Wasp's built-in capabilities, results in a clean, maintainable codebase that focuses on business logic rather than infrastructure concerns. 
+Each feature implementation follows the pattern of defining Wasp entities, routes, pages, queries, and actions in `main.wasp`, with corresponding server-side logic in `src/server/{featureName}/` and client-side UI in `src/client/{featureName}/`. This consistent approach leverages Wasp's capabilities for a clean and maintainable codebase. 
