@@ -198,82 +198,25 @@ The Reporting & Export feature provides researchers with tools to generate struc
 * **Comparative Analytics:**
   * Comparison with previous reviews
   * Benchmark against similar reviews
-  * Trend analysis over multiple reviews
-  * Efficiency metrics for review process
+  * Trend identification across multiple reviews
+  * Aggregated metrics from related reviews
 
-* **Interactive Data Exploration:**
-  * Drill-down capabilities for aggregate statistics
-  * Filtering and segmentation of report data
-  * Custom queries and calculations
-  * What-if scenario modelling
+### 5. Publication Support
 
-### 5. Reference Management Integration
+* **Citation Management:**
+  * Export of citations in multiple formats
+  * Direct integration with reference management tools
+  * Custom citation style support
+  * Bulk export of all included references
 
-* **Citation Export:**
-  * Export included references in multiple formats:
-    * BibTeX
-    * RIS
-    * EndNote
-    * Zotero/Mendeley compatible
+* **PRISMA Checklist Compliance:**
+  * Interactive PRISMA checklist tracking
+  * Automatic identification of missing elements
+  * Guided completion of required reporting items
+  * Validation against current PRISMA guidelines
 
-* **Reference Manager Connectivity:**
-  * Direct integration with popular reference managers
-  * Automatic synchronization of included references
-  * Bidirectional updates of reference metadata
-  * Custom fields for review-specific notes
-
-* **Citation Network Visualization:**
-  * Visual representation of citation relationships
-  * Identification of key sources and seminal works
-  * Citation frequency and impact metrics
-  * Co-citation analysis
-
-## Implementation Guidelines
-
-### Technical Approach
-
-1. **Modular Design:**
-   * Structure reports as composable sections with clear interfaces
-   * Implement a plugin architecture for Phase 2 extensions
-   * Use template pattern for different report types
-   * Create a consistent data access layer for report generation
-
-2. **Performance Considerations:**
-   * Generate reports on demand rather than real-time
-   * Cache report data when possible
-   * Implement progressive loading for large reports
-   * Optimize visualizations for performance
-
-3. **Accessibility Compliance:**
-   * Ensure all reports have proper semantic structure
-   * Provide text alternatives for visualizations
-   * Maintain keyboard navigability throughout
-   * Test with screen readers and assistive technologies
-
-4. **Print Optimization:**
-   * Create print-friendly CSS for browser printing
-   * Test printed output across different browsers
-   * Ensure page breaks occur at logical points
-   * Apply print-specific styling automatically
-
-### Integration Points
-
-1. **Data Sources:**
-   * Direct integration with review data models for a specific session.
-   * Access to search strategy configuration.
-   * Query execution history.
-   * User interaction logs for access tracking.
-
-2. **External Systems:**
-   * Phase 2 integration with reference management systems.
-   * Academic repository connections.
-   * Publication platforms.
-   * Institutional research databases.
-
-3. **User Workflow Integration:**
-   * Clear pathways from review completion (or in-progress state via Session Hub Page in Phase 2) to reporting.
-   * Report generation as part of review lifecycle.
-   * Integration with user notification system.
-   * Sharing capabilities within research teams.
-
-This implementation plan provides a structured approach to developing the Reporting & Export feature, ensuring that Phase 1 delivers essential capabilities while establishing a foundation for the more sophisticated functionality planned for Phase 2.
+* **Journal-specific Formatting:**
+  * Templates for common academic journals
+  * Format validation for submission requirements
+  * Preview in journal-specific layouts
+  * Export optimized for specific publishers 

@@ -198,198 +198,126 @@ This section details the specific visual styling for the Authentication feature,
 
 #### 4.4. Mode Switching Considerations
 
-*   The authentication pages must fully support the application's light/dark mode switching.
-*   A toggle (e.g., sun/moon icon, typically in a shared header/layout) will control the mode.
-*   User preference should be stored (e.g., in local storage) and system preference (`prefers-color-scheme`) used as a default.
-*   Transitions between modes should be smooth (e.g., 150ms).
+*   The authentication interface should respect system preferences for light/dark mode.
+*   If applicable, a manual toggle should be accessible but not prominent in the authentication screens.
+*   Transitions between modes should be smooth (e.g., `transition: colors 0.3s ease-in-out`).
 
-#### 4.5. Accessibility
+#### 4.5. Responsive Behavior
 
-*   **Contrast Ratios:** Adhere to WCAG AA standards.
-    *   Light Mode: Dark Charcoal text on White, Dark Charcoal on Light Taupe.
-    *   Dark Mode: White text on Dark Charcoal, White on Slate.
-*   **Focus States:** All interactive elements (buttons, inputs, links) must have highly visible focus states using the Teal (`#6A9CAB`) outline.
-*   **ARIA Attributes:** Use appropriate ARIA attributes for form fields, error messages, and dynamic content changes.
-*   **Keyboard Navigation:** Ensure all parts of the authentication flow are fully navigable and operable using a keyboard.
+*   **Desktop Presentation:** Full-width form with generous whitespace, centered on page. Max width approximately 24rem (384px) for the form itself, contained in a wider card/container.
+*   **Mobile Adjustments:** Full-width with smaller horizontal margins (e.g., 16px), vertical stacking of all elements, appropriately sized touch targets (minimum 44×44px for interactive elements).
+*   **Tablet/Mid-size:** Similar to desktop but with slightly reduced whitespace.
 
-#### 4.6. Information Hierarchy & Consistency
+### 5. Accessibility Considerations
 
-*   Clear visual distinction between required and optional fields.
-*   Prominent primary actions (Login, Register buttons).
-*   Secondary actions (e.g., "Forgot Password") styled appropriately to be less prominent but clearly interactive.
-*   Error messages directly associated with relevant fields, using Error Red (`#D64045`).
-*   Consistent spacing, alignment, and typography across all authentication screens, following the global style guide.
-*   While Wasp's `LoginForm` and `SignupForm` provide base structures, they should be styled to match these Thesis Grey specific guidelines. This might involve custom CSS targeting Wasp's generated elements or wrapping them if necessary.
+*   **Screen Reader Support:**
+    *   Proper labeling of all form fields
+    *   Error messages linked to relevant inputs via `aria-describedby`
+    *   Focus management for form sequences
+    *   Semantic HTML structure (e.g., proper heading hierarchy)
+
+*   **Keyboard Navigation:**
+    *   Logical tab order through form elements
+    *   Skip links for bypassing navigation
+    *   Clear focus indicators (beyond browser defaults)
+    *   Keyboard shortcuts for common actions
+
+*   **Visual Accessibility:**
+    *   Sufficient color contrast for text and UI elements
+    *   Text resizability without breaking layouts
+    *   Support for screen magnification
+    *   Alternative text for all images and icons
+
+*   **Cognitive Accessibility:**
+    *   Simple, clear language in instructions and errors
+    *   Consistent positioning of elements across flows
+    *   Progressive disclosure for complex operations
+    *   Adequate timeout periods for session expiration
 
 ## Phase 2 Enhancements
 
-### 1. Enhanced Authentication Options
+### 1. Enhanced Authentication Methods
 
 #### OAuth Integration
 
-* **Social Login Providers:**
-  * Google OAuth integration
-  * ORCID integration for academic users
-  * Institutional SSO options
-  * Clear visual distinction between provider options
+*   **Provider Selection:**
+    *   Google authentication option
+    *   ORCID integration for academic users
+    *   Option to link existing accounts
 
-* **Authentication Linking:**
-  * Ability to link multiple authentication methods to one account
-  * Management interface for connected accounts
-  * Primary account designation
-  * Secure account merging process
+*   **Provider-specific UI:**
+    *   Branded provider buttons with icons
+    *   Clear flow for authorization and permission requests
+    *   Account linking interface for existing users
 
-#### Advanced Security Features
+#### Multi-factor Authentication
 
-* **Multi-factor Authentication:**
-  * Optional MFA setup during registration or profile management
-  * Support for authenticator apps
-  * Recovery codes generation and management
-  * Clear setup instructions with fallback options
+*   **Setup Interface:**
+    *   Step-by-step guide for enabling MFA
+    *   QR code display for authenticator apps
+    *   Backup codes generation and management
 
-* **Security Notifications:**
-  * Email alerts for significant account actions
-  * Unusual login detection and verification
-  * Session management with active sessions list
-  * Remote session termination capability
+*   **Verification Interface:**
+    *   Clear input field for verification codes
+    *   Countdown timer for time-based codes
+    *   Fallback options for access recovery
 
-### 2. Role and Organization Management
+### 2. Team and Organization Management
 
-#### User Role System
+#### Organization Creation & Management
 
-* **Role Management Interface:**
-  * Global role display (Researcher, Admin)
-  * Session-specific role display (Lead Reviewer, Reviewer)
-  * Role change request workflow
-  * Role permission explanations
+*   **Organization Setup:**
+    *   Organization profile creation form
+    *   Branding upload options
+    *   Domain verification for email-based automatic joining
 
-* **Admin Controls:**
-  * User search and filtering
-  * Bulk role assignments
-  * Account status management (active/suspended)
-  * Access logs and audit trails
+*   **Member Management:**
+    *   Directory of organization members
+    *   Role assignment interface
+    *   Invitation system for new members
 
-#### Organization Integration
+#### Team Workspace Interface
 
-* **Organization Selection:**
-  * Organization dropdown during registration or profile update
-  * Organization creation request workflow
-  * Pending organization invitations display
-  * Organization switching interface
+*   **Team Navigation:**
+    *   Team selector in global navigation
+    *   Team-specific dashboard views
+    *   Clear visual indicators of current context
 
-* **Team Management:**
-  * Team membership display
-  * Team role indicators
-  * Team invitation management
-  * Default team selection
+*   **Collaboration Tools:**
+    *   Access control management interface
+    *   Activity feeds for team operations
+    *   Resource sharing controls
 
-### 3. Profile Enhancement
+### 3. Enhanced Profile Management
 
-#### Extended Profile Management
+*   **Extended Profile Fields:**
+    *   Academic/professional affiliations
+    *   Research interests and specializations
+    *   Publication links
 
-* **Comprehensive Profile Editor:**
-  * Professional information (affiliations, position)
-  * Research specialties and interests
-  * Publication links
-  * ORCID integration
-  * Contact preferences
+*   **Public Profile Options:**
+    *   Privacy settings management
+    *   Profile visibility controls
+    *   Connection/networking features (if implemented)
 
-* **Visibility Controls:**
-  * Profile information visibility settings
-  * Granular privacy controls
-  * Public profile option
-  * Contact permission settings
+*   **Activity Dashboard:**
+    *   User activity history and statistics
+    *   Contribution metrics visualization
+    *   Achievement/gamification elements (if implemented)
 
-#### User Preferences
+### 4. Administrative Control Panel
 
-* **Application Preferences:**
-  * Theme selection (light/dark/system)
-  * Language preference
-  * Notification settings
-  * Display density options
-  * Default views and filters
+*   **User Management:**
+    *   Admin view of all system users
+    *   Account status controls (suspend, activate)
+    *   Manual verification options
 
-* **Keyboard Shortcut Customization:**
-  * Personalized keyboard shortcuts
-  * Shortcut map display
-  * Accessibility preferences
-  * Input method preferences
+*   **System Monitoring:**
+    *   Basic analytics dashboard
+    *   Session monitoring tools
+    *   Access logs and security alerts
 
-### 4. Collaboration Features
-
-#### Invitation Management
-
-* **Invitation Dashboard:**
-  * Pending invitations list
-  * Historical invitations record
-  * Batch invitation actions
-  * Custom invitation messages
-
-* **Access Requests:**
-  * Request to join teams or organizations
-  * Request status tracking
-  * Request cancellation
-  * Custom justification fields
-
-#### Permission Management
-
-* **Granular Permissions:**
-  * Feature-based permission settings
-  * Session-specific permission controls
-  * Temporary access grants
-  * Permission delegation
-
-* **Permission Templates:**
-  * Predefined permission sets
-  * Custom template creation
-  * Template assignment to users
-  * Permission inheritance controls
-
-## Implementation Guidelines
-
-### Technical Approach
-
-1. **Authentication Framework:**
-   * JWT-based authentication through Wasp's auth system
-   * Secure password hashing and storage
-   * Session management with appropriate security controls
-   * Role-based access control infrastructure
-
-2. **Security Considerations:**
-   * HTTPS enforcement
-   * Protection against common vulnerabilities (CSRF, XSS)
-   * Rate limiting for authentication attempts
-   * Input sanitization and validation
-   * Security headers implementation
-
-3. **Accessibility Compliance:**
-   * WCAG 2.1 AA compliance for all authentication interfaces
-   * Keyboard navigation support
-   * Screen reader compatibility
-   * Focus management during form transitions
-   * Clear error identification and resolution guidance
-
-4. **Responsive Design:**
-   * Mobile-optimized authentication forms
-   * Touch-friendly input controls
-   * Appropriate input types for mobile keyboards
-   * Simplified flows for smaller screens
-
-### Integration Points
-
-1. **User Entity Integration:**
-   * Direct integration with User, Role, and SessionMembership entities
-   * Profile data mapping to user preferences
-   * Role mapping to permission sets
-
-2. **Feature Access Control:**
-   * Authentication state checks for protected routes
-   * Role-based component rendering
-   * Permission-based action availability
-   * Contextual UI adaptation based on user role
-
-3. **Notification Integration:**
-   * Authentication event notifications
-   * Security alert delivery
-   * Invitation and request notifications
-   * Session status updates
+*   **Configuration Options:**
+    *   Global settings management
+    *   Feature toggles for beta capabilities
+    *   API access management 
